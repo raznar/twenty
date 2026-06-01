@@ -12,6 +12,7 @@ import { type WorkspaceAuthContext } from 'src/engine/core-modules/auth/types/wo
 import { type FlatEntityMaps } from 'src/engine/metadata-modules/flat-entity/types/flat-entity-maps.type';
 import { type FlatFieldMetadata } from 'src/engine/metadata-modules/flat-field-metadata/types/flat-field-metadata.type';
 import { type FlatObjectMetadata } from 'src/engine/metadata-modules/flat-object-metadata/types/flat-object-metadata.type';
+import { PermissionsExceptionCode } from 'src/engine/metadata-modules/permissions/permissions.exception';
 import { type GlobalWorkspaceDataSource } from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-datasource';
 import { validateOperationIsPermittedOrThrow } from 'src/engine/twenty-orm/repository/permissions.utils';
 import {
@@ -549,6 +550,38 @@ describe('WorkspaceEntityManager', () => {
           rowLevelPermissionPredicates: [],
           rowLevelPermissionPredicateGroups: [],
         },
+      });
+    });
+
+    it('should throw when a union role has no datasource permissions', () => {
+      Object.assign(mockDataSource.permissionsPerRoleId, {
+        'sales-role-id': {
+          'test-entity-id': {
+            canReadObjectRecords: true,
+            canUpdateObjectRecords: false,
+            canSoftDeleteObjectRecords: false,
+            canDestroyObjectRecords: false,
+            restrictedFields: {},
+            rowLevelPermissionPredicates: [],
+            rowLevelPermissionPredicateGroups: [],
+          },
+        },
+      });
+
+      let caughtError: unknown;
+
+      try {
+        entityManager.getRepository('test-entity', {
+          unionOf: ['sales-role-id', 'missing-role-id'],
+        });
+      } catch (error) {
+        caughtError = error;
+      }
+
+      expect(caughtError).toMatchObject({
+        code: PermissionsExceptionCode.NO_PERMISSIONS_FOUND_IN_DATASOURCE,
+        message:
+          'No permissions found for role in datasource (roleId: missing-role-id)',
       });
     });
   });
