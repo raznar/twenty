@@ -1,4 +1,7 @@
-import { type ObjectPermissions } from 'twenty-shared/types';
+import {
+  type ObjectPermissions,
+  type ObjectsPermissionsByRoleId,
+} from 'twenty-shared/types';
 
 import { DatabaseToolProvider } from 'src/engine/core-modules/tool-provider/providers/database-tool.provider';
 import { type ToolDescriptor } from 'src/engine/core-modules/tool-provider/types/tool-descriptor.type';
@@ -10,6 +13,8 @@ import { type FlatObjectMetadata } from 'src/engine/metadata-modules/flat-object
 import { type WorkspaceCacheService } from 'src/engine/workspace-cache/services/workspace-cache.service';
 
 const roleId = 'role-id';
+const salesRoleId = 'sales-role-id';
+const automationRoleId = 'automation-role-id';
 const workspaceId = 'workspace-id';
 
 const allObjectPermissions: ObjectPermissions = {
@@ -32,6 +37,19 @@ const createFlatObject = (
     labelPlural: overrides.namePlural,
     ...overrides,
   });
+
+const createObjectPermissions = (
+  overrides: Partial<ObjectPermissions> = {},
+): ObjectPermissions => ({
+  canReadObjectRecords: false,
+  canUpdateObjectRecords: false,
+  canSoftDeleteObjectRecords: false,
+  canDestroyObjectRecords: false,
+  restrictedFields: {},
+  rowLevelPermissionPredicates: [],
+  rowLevelPermissionPredicateGroups: [],
+  ...overrides,
+});
 
 describe('DatabaseToolProvider', () => {
   const generateDescriptorNames = async (objects: FlatObjectMetadata[]) => {
@@ -169,6 +187,78 @@ describe('DatabaseToolProvider', () => {
         'update_dashboard',
         'delete_dashboard',
       ]),
+    );
+  });
+
+  it('combines object permissions when tool context uses multiple union roles', async () => {
+    const companyObject = createFlatObject({
+      id: 'company-object-metadata-id',
+      nameSingular: 'company',
+      namePlural: 'companies',
+    });
+    const taskObject = createFlatObject({
+      id: 'task-object-metadata-id',
+      nameSingular: 'task',
+      namePlural: 'tasks',
+    });
+    const flatObjectMetadataMaps =
+      createEmptyFlatEntityMaps() as FlatEntityMaps<FlatObjectMetadata>;
+
+    for (const object of [companyObject, taskObject]) {
+      flatObjectMetadataMaps.byUniversalIdentifier[object.universalIdentifier] =
+        object;
+      flatObjectMetadataMaps.universalIdentifierById[object.id] =
+        object.universalIdentifier;
+    }
+
+    const rolesPermissions: ObjectsPermissionsByRoleId = {
+      [salesRoleId]: {
+        [companyObject.id]: createObjectPermissions({
+          canReadObjectRecords: true,
+        }),
+        [taskObject.id]: createObjectPermissions(),
+      },
+      [automationRoleId]: {
+        [companyObject.id]: createObjectPermissions(),
+        [taskObject.id]: createObjectPermissions({
+          canUpdateObjectRecords: true,
+        }),
+      },
+    };
+
+    const workspaceCacheService = {
+      getOrRecompute: jest.fn().mockResolvedValue({
+        rolesPermissions,
+      }),
+    } as unknown as WorkspaceCacheService;
+
+    const flatEntityMapsCacheService = {
+      getOrRecomputeManyOrAllFlatEntityMaps: jest.fn().mockResolvedValue({
+        flatObjectMetadataMaps,
+        flatFieldMetadataMaps: createEmptyFlatEntityMaps(),
+      }),
+    } as unknown as WorkspaceManyOrAllFlatEntityMapsCacheService;
+
+    const provider = new DatabaseToolProvider(
+      workspaceCacheService,
+      flatEntityMapsCacheService,
+    );
+
+    const descriptors = (await provider.generateDescriptors(
+      {
+        workspaceId,
+        roleId: salesRoleId,
+        rolePermissionConfig: { unionOf: [salesRoleId, automationRoleId] },
+      },
+      { includeSchemas: false },
+    )) as ToolDescriptor[];
+    const descriptorNames = descriptors.map((descriptor) => descriptor.name);
+
+    expect(descriptorNames).toEqual(
+      expect.arrayContaining(['find_companies', 'update_task']),
+    );
+    expect(descriptorNames).toEqual(
+      expect.not.arrayContaining(['update_company', 'find_tasks']),
     );
   });
 });
