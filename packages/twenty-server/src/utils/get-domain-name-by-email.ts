@@ -7,7 +7,11 @@ const getEmailDomainSeparatorIndexes = (email: string) => {
   const separatorIndexes: number[] = [];
   let isInsideQuotedLocalPart = false;
 
-  for (let characterIndex = 0; characterIndex < email.length; characterIndex++) {
+  for (
+    let characterIndex = 0;
+    characterIndex < email.length;
+    characterIndex++
+  ) {
     const character = email[characterIndex];
 
     if (character === '"' && separatorIndexes.length === 0) {
