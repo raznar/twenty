@@ -129,7 +129,9 @@ describe('computePermissionUnion', () => {
       ])[companyObjectMetadataId].restrictedFields,
     ).toEqual({
       [amountFieldMetadataId]: {
-        canRead: false,
+        canUpdate: false,
+      },
+      [nameFieldMetadataId]: {
         canUpdate: false,
       },
     });

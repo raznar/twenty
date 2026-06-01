@@ -155,9 +155,8 @@ export class WorkspaceEntityManager extends EntityManager {
     }
 
     if (rolePermissionConfig && 'unionOf' in rolePermissionConfig) {
-      const allRolePermissions = rolePermissionConfig.unionOf.map(
-        (roleId) =>
-          this.getPermissionsForRole(roleId, objectPermissionsByRoleId),
+      const allRolePermissions = rolePermissionConfig.unionOf.map((roleId) =>
+        this.getPermissionsForRole(roleId, objectPermissionsByRoleId),
       );
 
       objectPermissions =
