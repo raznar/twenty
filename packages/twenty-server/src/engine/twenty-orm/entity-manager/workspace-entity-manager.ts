@@ -62,6 +62,7 @@ import { WorkspaceRepository } from 'src/engine/twenty-orm/repository/workspace.
 import { getWorkspaceContext } from 'src/engine/twenty-orm/storage/orm-workspace-context.storage';
 import { type RolePermissionConfig } from 'src/engine/twenty-orm/types/role-permission-config';
 import { computePermissionIntersection } from 'src/engine/twenty-orm/utils/compute-permission-intersection.util';
+import { computePermissionUnion } from 'src/engine/twenty-orm/utils/compute-permission-union.util';
 import { formatData } from 'src/engine/twenty-orm/utils/format-data.util';
 import { formatResult } from 'src/engine/twenty-orm/utils/format-result.util';
 import { formatTwentyOrmEventToDatabaseBatchEvent } from 'src/engine/twenty-orm/utils/format-twenty-orm-event-to-database-batch-event.util';
@@ -154,17 +155,14 @@ export class WorkspaceEntityManager extends EntityManager {
     }
 
     if (rolePermissionConfig && 'unionOf' in rolePermissionConfig) {
-      if (rolePermissionConfig.unionOf.length === 1) {
-        objectPermissions = this.getPermissionsForRole(
-          rolePermissionConfig.unionOf[0],
-          objectPermissionsByRoleId,
-        );
-      } else {
-        // TODO: Implement union logic for combining permissions across multiple roles
-        throw new Error(
-          'Union permission logic for multiple roles not yet implemented',
-        );
-      }
+      const allRolePermissions = rolePermissionConfig.unionOf.map((roleId) =>
+        this.getPermissionsForRole(roleId, objectPermissionsByRoleId),
+      );
+
+      objectPermissions =
+        allRolePermissions.length === 1
+          ? allRolePermissions[0]
+          : computePermissionUnion(allRolePermissions);
     }
 
     if (rolePermissionConfig && 'intersectionOf' in rolePermissionConfig) {

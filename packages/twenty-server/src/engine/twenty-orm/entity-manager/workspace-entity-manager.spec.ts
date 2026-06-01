@@ -482,6 +482,51 @@ describe('WorkspaceEntityManager', () => {
     });
   });
 
+  describe('getRepository', () => {
+    it('should union object permissions from multiple roles', () => {
+      const salesRoleId = 'sales-role-id';
+      const automationRoleId = 'automation-role-id';
+
+      entityManager.connection.permissionsPerRoleId = {
+        [salesRoleId]: {
+          'test-entity-id': {
+            canReadObjectRecords: true,
+            canUpdateObjectRecords: false,
+            canSoftDeleteObjectRecords: false,
+            canDestroyObjectRecords: false,
+            restrictedFields: {},
+            rowLevelPermissionPredicates: [],
+            rowLevelPermissionPredicateGroups: [],
+          },
+        },
+        [automationRoleId]: {
+          'test-entity-id': {
+            canReadObjectRecords: false,
+            canUpdateObjectRecords: true,
+            canSoftDeleteObjectRecords: false,
+            canDestroyObjectRecords: false,
+            restrictedFields: {},
+            rowLevelPermissionPredicates: [],
+            rowLevelPermissionPredicateGroups: [],
+          },
+        },
+      };
+
+      const repository = entityManager.getRepository('test-entity', {
+        unionOf: [salesRoleId, automationRoleId],
+      });
+
+      expect(repository.objectRecordsPermissions).toMatchObject({
+        'test-entity-id': {
+          canReadObjectRecords: true,
+          canUpdateObjectRecords: true,
+          canSoftDeleteObjectRecords: false,
+          canDestroyObjectRecords: false,
+        },
+      });
+    });
+  });
+
   describe('Other Methods', () => {
     it('should call validatePermissions and validateOperationIsPermittedOrThrow for clear', async () => {
       await withWorkspaceContext(mockWorkspaceContext, () =>

@@ -1,4 +1,7 @@
-import { type ObjectPermissions } from 'twenty-shared/types';
+import {
+  type ObjectPermissions,
+  type ObjectsPermissionsByRoleId,
+} from 'twenty-shared/types';
 
 import { DatabaseToolProvider } from 'src/engine/core-modules/tool-provider/providers/database-tool.provider';
 import { type ToolDescriptor } from 'src/engine/core-modules/tool-provider/types/tool-descriptor.type';
@@ -34,7 +37,15 @@ const createFlatObject = (
   });
 
 describe('DatabaseToolProvider', () => {
-  const generateDescriptorNames = async (objects: FlatObjectMetadata[]) => {
+  const generateDescriptorNames = async (
+    objects: FlatObjectMetadata[],
+    rolesPermissions: ObjectsPermissionsByRoleId = {
+      [roleId]: Object.fromEntries(
+        objects.map((object) => [object.id, allObjectPermissions]),
+      ),
+    },
+    rolePermissionConfig = { unionOf: [roleId] },
+  ) => {
     const flatObjectMetadataMaps =
       createEmptyFlatEntityMaps() as FlatEntityMaps<FlatObjectMetadata>;
 
@@ -47,11 +58,7 @@ describe('DatabaseToolProvider', () => {
 
     const workspaceCacheService = {
       getOrRecompute: jest.fn().mockResolvedValue({
-        rolesPermissions: {
-          [roleId]: Object.fromEntries(
-            objects.map((object) => [object.id, allObjectPermissions]),
-          ),
-        },
+        rolesPermissions,
       }),
     } as unknown as WorkspaceCacheService;
 
@@ -71,7 +78,7 @@ describe('DatabaseToolProvider', () => {
       {
         workspaceId,
         roleId,
-        rolePermissionConfig: { unionOf: [roleId] },
+        rolePermissionConfig,
       },
       { includeSchemas: false },
     )) as ToolDescriptor[];
@@ -169,6 +176,66 @@ describe('DatabaseToolProvider', () => {
         'update_dashboard',
         'delete_dashboard',
       ]),
+    );
+  });
+
+  it('advertises tools from unioned permissions across multiple roles', async () => {
+    const salesRoleId = 'sales-role-id';
+    const automationRoleId = 'automation-role-id';
+    const companyObject = createFlatObject({
+      id: 'company-id',
+      nameSingular: 'company',
+      namePlural: 'companies',
+    });
+    const taskObject = createFlatObject({
+      id: 'task-id',
+      nameSingular: 'task',
+      namePlural: 'tasks',
+    });
+
+    const descriptorNames = await generateDescriptorNames(
+      [companyObject, taskObject],
+      {
+        [salesRoleId]: {
+          [companyObject.id]: {
+            ...allObjectPermissions,
+            canUpdateObjectRecords: false,
+            canSoftDeleteObjectRecords: false,
+            canDestroyObjectRecords: false,
+          },
+          [taskObject.id]: {
+            ...allObjectPermissions,
+            canReadObjectRecords: false,
+            canUpdateObjectRecords: false,
+            canSoftDeleteObjectRecords: false,
+            canDestroyObjectRecords: false,
+          },
+        },
+        [automationRoleId]: {
+          [companyObject.id]: {
+            ...allObjectPermissions,
+            canReadObjectRecords: false,
+            canUpdateObjectRecords: false,
+            canSoftDeleteObjectRecords: false,
+            canDestroyObjectRecords: false,
+          },
+          [taskObject.id]: {
+            ...allObjectPermissions,
+            canReadObjectRecords: false,
+            canUpdateObjectRecords: true,
+            canSoftDeleteObjectRecords: false,
+            canDestroyObjectRecords: false,
+          },
+        },
+      },
+      { unionOf: [salesRoleId, automationRoleId] },
+    );
+
+    expect(descriptorNames).toEqual(
+      expect.arrayContaining(['find_companies', 'update_task']),
+    );
+    expect(descriptorNames).toEqual(
+      expect.not.arrayContaining(['update_company', 'find_tasks']),
     );
   });
 });
