@@ -9,9 +9,7 @@ describe('computePermissionUnion', () => {
     'annual-recurring-revenue-field-metadata-id';
 
   const createObjectPermissions = (
-    overrides: Partial<
-      ObjectsPermissions[string]
-    > = {},
+    overrides: Partial<ObjectsPermissions[string]> = {},
   ): ObjectsPermissions[string] => ({
     canReadObjectRecords: false,
     canUpdateObjectRecords: false,

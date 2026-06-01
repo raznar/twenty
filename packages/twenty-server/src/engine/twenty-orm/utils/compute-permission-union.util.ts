@@ -8,7 +8,9 @@ const hasFieldPermission = (
   objectPermissions: ObjectPermissions,
   fieldMetadataId: string,
   fieldPermissionType: keyof RestrictedFieldPermissions,
-) => objectPermissions.restrictedFields[fieldMetadataId]?.[fieldPermissionType] !== false;
+) =>
+  objectPermissions.restrictedFields[fieldMetadataId]?.[fieldPermissionType] !==
+  false;
 
 const computeRestrictedFieldPermissionUnion = ({
   permissionsWithObjectPermission,
