@@ -309,6 +309,7 @@ describe('WorkspaceEntityManager', () => {
 
     // Mock TypeORM connection methods
     const mockWorkspaceDataSource = {
+      permissionsPerRoleId: mockDataSource.permissionsPerRoleId,
       getMetadata: jest.fn().mockReturnValue({
         name: 'test-entity',
         columns: [],
@@ -503,6 +504,51 @@ describe('WorkspaceEntityManager', () => {
         selectedColumns: [],
         allFieldsSelected: false,
         updatedColumns: [],
+      });
+    });
+  });
+
+  describe('getRepository', () => {
+    it('should combine object permissions when permission config uses multiple union roles', () => {
+      Object.assign(mockDataSource.permissionsPerRoleId, {
+        'sales-role-id': {
+          'test-entity-id': {
+            canReadObjectRecords: true,
+            canUpdateObjectRecords: false,
+            canSoftDeleteObjectRecords: false,
+            canDestroyObjectRecords: false,
+            restrictedFields: {},
+            rowLevelPermissionPredicates: [],
+            rowLevelPermissionPredicateGroups: [],
+          },
+        },
+        'automation-role-id': {
+          'test-entity-id': {
+            canReadObjectRecords: false,
+            canUpdateObjectRecords: true,
+            canSoftDeleteObjectRecords: false,
+            canDestroyObjectRecords: false,
+            restrictedFields: {},
+            rowLevelPermissionPredicates: [],
+            rowLevelPermissionPredicateGroups: [],
+          },
+        },
+      });
+
+      const repository = entityManager.getRepository('test-entity', {
+        unionOf: ['sales-role-id', 'automation-role-id'],
+      });
+
+      expect(repository.objectRecordsPermissions).toEqual({
+        'test-entity-id': {
+          canReadObjectRecords: true,
+          canUpdateObjectRecords: true,
+          canSoftDeleteObjectRecords: false,
+          canDestroyObjectRecords: false,
+          restrictedFields: {},
+          rowLevelPermissionPredicates: [],
+          rowLevelPermissionPredicateGroups: [],
+        },
       });
     });
   });
