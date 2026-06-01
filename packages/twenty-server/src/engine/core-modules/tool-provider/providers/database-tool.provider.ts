@@ -31,6 +31,7 @@ import { type ToolOutput } from 'src/engine/core-modules/tool/types/tool-output.
 import { isWorkflowRelatedObject } from 'src/engine/metadata-modules/ai/ai-agent/utils/is-workflow-related-object.util';
 import { WorkspaceManyOrAllFlatEntityMapsCacheService } from 'src/engine/metadata-modules/flat-entity/services/workspace-many-or-all-flat-entity-maps-cache.service';
 import { computePermissionIntersection } from 'src/engine/twenty-orm/utils/compute-permission-intersection.util';
+import { computePermissionUnion } from 'src/engine/twenty-orm/utils/compute-permission-union.util';
 import { WorkspaceCacheService } from 'src/engine/workspace-cache/services/workspace-cache.service';
 
 @Injectable()
@@ -308,13 +309,13 @@ export class DatabaseToolProvider implements ToolProvider {
     }
 
     if ('unionOf' in rolePermissionConfig) {
-      if (rolePermissionConfig.unionOf.length === 1) {
-        return rolesPermissions[rolePermissionConfig.unionOf[0]];
-      }
-
-      throw new Error(
-        'Union permission logic for multiple roles not yet implemented',
+      const allRolePermissions = rolePermissionConfig.unionOf.map(
+        (roleId: string) => rolesPermissions[roleId],
       );
+
+      return allRolePermissions.length === 1
+        ? allRolePermissions[0]
+        : computePermissionUnion(allRolePermissions);
     }
 
     return null;
