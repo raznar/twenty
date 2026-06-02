@@ -4,7 +4,10 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import bcrypt from 'bcrypt';
 import { type Repository } from 'typeorm';
 
-import { AppTokenEntity } from 'src/engine/core-modules/app-token/app-token.entity';
+import {
+  AppTokenEntity,
+  AppTokenType,
+} from 'src/engine/core-modules/app-token/app-token.entity';
 import { AuditService } from 'src/engine/core-modules/audit/services/audit.service';
 import {
   AuthException,
@@ -44,6 +47,7 @@ describe('AuthService', () => {
   let service: AuthService;
   let userService: UserService;
   let workspaceRepository: Repository<WorkspaceEntity>;
+  let appTokenRepository: Repository<AppTokenEntity>;
   let userRepository: Repository<UserEntity>;
   let authSsoService: AuthSsoService;
   let userWorkspaceService: UserWorkspaceService;
@@ -61,6 +65,7 @@ describe('AuthService', () => {
           provide: getRepositoryToken(WorkspaceEntity),
           useValue: {
             findOne: jest.fn(),
+            findOneBy: jest.fn(),
           },
         },
         {
@@ -72,6 +77,7 @@ describe('AuthService', () => {
         {
           provide: getRepositoryToken(AppTokenEntity),
           useValue: {
+            findOne: jest.fn(),
             createQueryBuilder: jest.fn().mockReturnValue({
               leftJoin: jest.fn().mockReturnThis(),
               andWhere: jest.fn().mockReturnThis(),
@@ -204,6 +210,9 @@ describe('AuthService', () => {
     workspaceRepository = module.get<Repository<WorkspaceEntity>>(
       getRepositoryToken(WorkspaceEntity),
     );
+    appTokenRepository = module.get<Repository<AppTokenEntity>>(
+      getRepositoryToken(AppTokenEntity),
+    );
     userRepository = module.get<Repository<UserEntity>>(
       getRepositoryToken(UserEntity),
     );
@@ -220,6 +229,98 @@ describe('AuthService', () => {
 
   it('should be defined', async () => {
     expect(service).toBeDefined();
+  });
+
+  describe('getWorkspaceInvitationPreview', () => {
+    const workspace = {
+      id: 'workspace-id',
+      displayName: 'Test Workspace',
+      logo: 'https://example.com/logo.png',
+      allowImpersonation: false,
+      isPublicInviteLinkEnabled: true,
+    } as WorkspaceEntity;
+
+    beforeEach(() => {
+      jest.spyOn(workspaceRepository, 'findOneBy').mockResolvedValue(workspace);
+    });
+
+    it('should return a valid preview for a personal invitation token', async () => {
+      jest.spyOn(appTokenRepository, 'findOne').mockResolvedValue({
+        workspaceId: workspace.id,
+        type: AppTokenType.InvitationToken,
+        value: 'invite-token',
+        expiresAt: new Date('2100-01-01T00:00:00.000Z'),
+        context: {
+          email: 'invited@example.com',
+          inviterEmail: 'sender@example.com',
+          inviterName: 'Sender Name',
+        },
+      } as AppTokenEntity);
+
+      const preview = await service.getWorkspaceInvitationPreview({
+        inviteHash: 'invite-hash',
+        inviteToken: 'invite-token',
+      });
+
+      expect(preview).toMatchObject({
+        workspaceId: workspace.id,
+        workspaceDisplayName: workspace.displayName,
+        workspaceLogo: workspace.logo,
+        allowImpersonation: workspace.allowImpersonation,
+        invitationEmail: 'invited@example.com',
+        inviterEmail: 'sender@example.com',
+        inviterName: 'Sender Name',
+        isExpired: false,
+        isValid: true,
+      });
+      expect(appTokenRepository.findOne).toHaveBeenCalledWith({
+        where: {
+          value: 'invite-token',
+          workspaceId: workspace.id,
+          type: AppTokenType.InvitationToken,
+        },
+      });
+    });
+
+    it('should report expired personal invitation tokens as invalid', async () => {
+      jest.spyOn(appTokenRepository, 'findOne').mockResolvedValue({
+        workspaceId: workspace.id,
+        type: AppTokenType.InvitationToken,
+        value: 'invite-token',
+        expiresAt: new Date('2000-01-01T00:00:00.000Z'),
+        context: {
+          email: 'invited@example.com',
+        },
+      } as AppTokenEntity);
+
+      const preview = await service.getWorkspaceInvitationPreview({
+        inviteHash: 'invite-hash',
+        inviteToken: 'invite-token',
+      });
+
+      expect(preview).toMatchObject({
+        invitationEmail: 'invited@example.com',
+        isExpired: true,
+        isValid: false,
+      });
+    });
+
+    it('should use public invite link status when there is no personal token', async () => {
+      jest.spyOn(appTokenRepository, 'findOne');
+
+      const preview = await service.getWorkspaceInvitationPreview({
+        inviteHash: 'invite-hash',
+      });
+
+      expect(preview).toMatchObject({
+        workspaceId: workspace.id,
+        invitationEmail: null,
+        expiresAt: null,
+        isExpired: false,
+        isValid: true,
+      });
+      expect(appTokenRepository.findOne).not.toHaveBeenCalled();
+    });
   });
 
   it('challenge - user already member of workspace', async () => {

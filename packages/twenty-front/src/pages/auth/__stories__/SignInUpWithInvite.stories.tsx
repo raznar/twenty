@@ -7,7 +7,7 @@ import { fireEvent, within } from 'storybook/test';
 import { captchaTokenState } from '@/captcha/states/captchaTokenState';
 import { useSetAtomState } from '@/ui/utilities/state/jotai/hooks/useSetAtomState';
 import { GET_CURRENT_USER } from '@/users/graphql/queries/getCurrentUser';
-import { GET_WORKSPACE_FROM_INVITE_HASH } from '@/workspace/graphql/queries/getWorkspaceFromInviteHash';
+import { GET_WORKSPACE_INVITATION_PREVIEW } from '@/workspace/graphql/queries/getWorkspaceFromInviteHash';
 import {
   PageDecorator,
   type PageDecoratorArgs,
@@ -48,16 +48,22 @@ const meta: Meta<PageDecoratorArgs> = {
     msw: {
       handlers: [
         graphql.query(
-          getOperationName(GET_WORKSPACE_FROM_INVITE_HASH) ?? '',
+          getOperationName(GET_WORKSPACE_INVITATION_PREVIEW) ?? '',
           () => {
             return HttpResponse.json({
               data: {
-                findWorkspaceFromInviteHash: {
-                  __typename: 'Workspace',
-                  id: '20202020-91f0-46d0-acab-cb5afef3cc3b',
-                  displayName: 'Twenty dev',
-                  logo: null,
+                getWorkspaceInvitationPreview: {
+                  __typename: 'WorkspaceInvitationPreview',
+                  workspaceId: '20202020-91f0-46d0-acab-cb5afef3cc3b',
+                  workspaceDisplayName: 'Twenty dev',
+                  workspaceLogo: null,
                   allowImpersonation: false,
+                  invitationEmail: 'new.member@example.com',
+                  inviterEmail: 'sender@example.com',
+                  inviterName: 'Sender Name',
+                  expiresAt: '2100-01-01T00:00:00.000Z',
+                  isExpired: false,
+                  isValid: true,
                 },
               },
             });
@@ -98,6 +104,10 @@ export const Default: Story = {
     await canvas.findByText('Join Twenty dev team', undefined, {
       timeout: 5000,
     });
+    await canvas.findByText('Invitation details');
+    await canvas.findByText('new.member@example.com');
+    await canvas.findByText('Sender Name (sender@example.com)');
+    await canvas.findByText('Valid');
 
     const continueWithEmailButton = await canvas.findByText(
       'Continue with Email',

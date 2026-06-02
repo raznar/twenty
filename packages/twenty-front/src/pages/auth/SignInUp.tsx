@@ -16,6 +16,7 @@ import { EmailVerificationSent } from '@/auth/sign-in-up/components/EmailVerific
 import { FooterNote } from '@/auth/sign-in-up/components/FooterNote';
 import { SignInUpGlobalScopeForm } from '@/auth/sign-in-up/components/SignInUpGlobalScopeForm';
 import { SignInUpWorkspaceScopeForm } from '@/auth/sign-in-up/components/SignInUpWorkspaceScopeForm';
+import { WorkspaceInvitationPreviewCard } from '@/auth/sign-in-up/components/WorkspaceInvitationPreviewCard';
 import { WorkspaceSelectionFooter } from '@/auth/sign-in-up/components/WorkspaceSelectionFooter';
 import { SignInUpSSOIdentityProviderSelection } from '@/auth/sign-in-up/components/internal/SignInUpSSOIdentityProviderSelection';
 import { SignInUpWorkspaceScopeFormEffect } from '@/auth/sign-in-up/components/internal/SignInUpWorkspaceScopeFormEffect';
@@ -38,6 +39,7 @@ import { Loader } from 'twenty-ui/feedback';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 import { AnimatedEaseIn } from 'twenty-ui/utilities';
 import { type PublicWorkspaceData } from '~/generated-metadata/graphql';
+import { type WorkspaceInvitationPreview } from '@/workspace/graphql/queries/getWorkspaceFromInviteHash';
 
 const StyledLoaderContainer = styled.div`
   align-items: center;
@@ -53,12 +55,14 @@ const StandardContent = ({
   signInUpForm,
   signInUpStep,
   title,
+  workspaceInvitationPreview,
   onClickOnLogo,
 }: {
   workspacePublicData: PublicWorkspaceData | null;
   signInUpForm: JSX.Element | null;
   signInUpStep: SignInUpStep;
   title: string;
+  workspaceInvitationPreview?: WorkspaceInvitationPreview;
   onClickOnLogo: () => void;
 }) => {
   return (
@@ -71,16 +75,22 @@ const StandardContent = ({
         />
       </AnimatedEaseIn>
       <Title animate>{title}</Title>
+      {isDefined(workspaceInvitationPreview) && (
+        <WorkspaceInvitationPreviewCard
+          invitationPreview={workspaceInvitationPreview}
+        />
+      )}
       {signInUpForm}
       {signInUpStep === SignInUpStep.WorkspaceSelection && (
         <WorkspaceSelectionFooter />
       )}
-      {![
-        SignInUpStep.Password,
-        SignInUpStep.TwoFactorAuthenticationProvision,
-        SignInUpStep.TwoFactorAuthenticationVerification,
-        SignInUpStep.WorkspaceSelection,
-      ].includes(signInUpStep) && <FooterNote />}
+      {isDefined(signInUpForm) &&
+        ![
+          SignInUpStep.Password,
+          SignInUpStep.TwoFactorAuthenticationProvision,
+          SignInUpStep.TwoFactorAuthenticationVerification,
+          SignInUpStep.WorkspaceSelection,
+        ].includes(signInUpStep) && <FooterNote />}
     </ModalContent>
   );
 };
@@ -100,8 +110,12 @@ export const SignInUp = () => {
   const isMultiWorkspaceEnabled = useAtomStateValue(
     isMultiWorkspaceEnabledState,
   );
-  const { workspaceInviteHash, workspace: workspaceFromInviteHash } =
-    useWorkspaceFromInviteHash();
+  const {
+    loading: workspaceInvitationPreviewLoading,
+    workspaceInviteHash,
+    workspace: workspaceFromInviteHash,
+    workspaceInvitationPreview,
+  } = useWorkspaceFromInviteHash();
 
   const [searchParams] = useSearchParams();
 
@@ -150,12 +164,24 @@ export const SignInUp = () => {
   ]);
 
   const signInUpForm = useMemo(() => {
-    if (getPublicWorkspaceDataLoading || !clientConfigApiStatus.isLoadedOnce) {
+    if (
+      getPublicWorkspaceDataLoading ||
+      workspaceInvitationPreviewLoading ||
+      !clientConfigApiStatus.isLoadedOnce
+    ) {
       return (
         <StyledLoaderContainer>
           <Loader color="gray" />
         </StyledLoaderContainer>
       );
+    }
+
+    if (
+      isDefined(workspaceInviteHash) &&
+      isDefined(workspaceInvitationPreview) &&
+      !workspaceInvitationPreview.isValid
+    ) {
+      return null;
     }
 
     if (isDefaultDomain && isMultiWorkspaceEnabled) {
@@ -199,6 +225,9 @@ export const SignInUp = () => {
     );
   }, [
     clientConfigApiStatus.isLoadedOnce,
+    workspaceInviteHash,
+    workspaceInvitationPreview,
+    workspaceInvitationPreviewLoading,
     isDefaultDomain,
     isMultiWorkspaceEnabled,
     isOnAWorkspace,
@@ -221,6 +250,7 @@ export const SignInUp = () => {
       signInUpForm={signInUpForm}
       signInUpStep={signInUpStep}
       title={title}
+      workspaceInvitationPreview={workspaceInvitationPreview}
       onClickOnLogo={onClickOnLogo}
     />
   );

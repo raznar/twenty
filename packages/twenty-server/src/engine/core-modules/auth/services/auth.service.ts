@@ -35,6 +35,7 @@ import { type AuthorizeAppInput } from 'src/engine/core-modules/auth/dto/authori
 import { type UpdatePasswordDTO } from 'src/engine/core-modules/auth/dto/update-password.dto';
 import { type UserCredentialsInput } from 'src/engine/core-modules/auth/dto/user-credentials.input';
 import { type CheckUserExistDTO } from 'src/engine/core-modules/auth/dto/user-exists.dto';
+import { type WorkspaceInvitationPreviewDTO } from 'src/engine/core-modules/auth/dto/workspace-invitation-preview.dto';
 import { type WorkspaceInviteHashValidDTO } from 'src/engine/core-modules/auth/dto/workspace-invite-hash-valid.dto';
 import { AuthSsoService } from 'src/engine/core-modules/auth/services/auth-sso.service';
 import { CreateSSOConnectedAccountService } from 'src/engine/core-modules/auth/services/create-sso-connected-account.service';
@@ -756,6 +757,56 @@ export class AuthService {
     }
 
     return workspace;
+  }
+
+  async getWorkspaceInvitationPreview({
+    inviteHash,
+    inviteToken,
+  }: {
+    inviteHash: string;
+    inviteToken?: string;
+  }): Promise<WorkspaceInvitationPreviewDTO> {
+    const workspace = await this.findWorkspaceFromInviteHashOrFail(inviteHash);
+
+    if (!isDefined(inviteToken)) {
+      return {
+        workspaceId: workspace.id,
+        workspaceDisplayName: workspace.displayName,
+        workspaceLogo: workspace.logo,
+        allowImpersonation: workspace.allowImpersonation,
+        invitationEmail: null,
+        inviterEmail: null,
+        inviterName: null,
+        expiresAt: null,
+        isExpired: false,
+        isValid: workspace.isPublicInviteLinkEnabled,
+      };
+    }
+
+    const appToken = await this.appTokenRepository.findOne({
+      where: {
+        value: inviteToken,
+        workspaceId: workspace.id,
+        type: AppTokenType.InvitationToken,
+      },
+    });
+
+    const isExpired = isDefined(appToken)
+      ? new Date(appToken.expiresAt) < new Date()
+      : false;
+
+    return {
+      workspaceId: workspace.id,
+      workspaceDisplayName: workspace.displayName,
+      workspaceLogo: workspace.logo,
+      allowImpersonation: workspace.allowImpersonation,
+      invitationEmail: appToken?.context?.email ?? null,
+      inviterEmail: appToken?.context?.inviterEmail ?? null,
+      inviterName: appToken?.context?.inviterName ?? null,
+      expiresAt: appToken?.expiresAt ?? null,
+      isExpired,
+      isValid: isDefined(appToken) && !isExpired,
+    };
   }
 
   computeRedirectURI({
