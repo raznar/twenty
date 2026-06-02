@@ -10,6 +10,7 @@ export enum WorkspaceInvitationExceptionCode {
   INVITATION_ALREADY_EXIST = 'INVITATION_ALREADY_EXIST',
   USER_ALREADY_EXIST = 'USER_ALREADY_EXIST',
   INVALID_INVITATION = 'INVALID_INVITATION',
+  INVITATION_EXPIRED = 'INVITATION_EXPIRED',
   EMAIL_MISSING = 'EMAIL_MISSING',
 }
 
@@ -21,6 +22,8 @@ const getWorkspaceInvitationExceptionUserFriendlyMessage = (
     case WorkspaceInvitationExceptionCode.INVITATION_CORRUPTED:
     case WorkspaceInvitationExceptionCode.INVALID_INVITATION:
       return msg`There is an issue with your invitation. Please try again.`;
+    case WorkspaceInvitationExceptionCode.INVITATION_EXPIRED:
+      return msg`This invitation has expired. Please ask for a new invitation.`;
     case WorkspaceInvitationExceptionCode.INVITATION_ALREADY_EXIST:
       return msg`An invitation has already been sent to this email.`;
     case WorkspaceInvitationExceptionCode.USER_ALREADY_EXIST:

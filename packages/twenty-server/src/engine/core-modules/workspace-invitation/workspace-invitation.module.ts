@@ -10,6 +10,7 @@ import { OnboardingModule } from 'src/engine/core-modules/onboarding/onboarding.
 import { ThrottlerModule } from 'src/engine/core-modules/throttler/throttler.module';
 import { UserWorkspaceEntity } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
 import { WorkspaceInvitationService } from 'src/engine/core-modules/workspace-invitation/services/workspace-invitation.service';
+import { WorkspaceInvitationPublicResolver } from 'src/engine/core-modules/workspace-invitation/workspace-invitation-public.resolver';
 import { WorkspaceInvitationResolver } from 'src/engine/core-modules/workspace-invitation/workspace-invitation.resolver';
 import { WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.entity';
 import { PermissionsModule } from 'src/engine/metadata-modules/permissions/permissions.module';
@@ -31,6 +32,10 @@ import { RoleValidationModule } from 'src/engine/metadata-modules/role-validatio
     ThrottlerModule,
   ],
   exports: [WorkspaceInvitationService],
-  providers: [WorkspaceInvitationService, WorkspaceInvitationResolver],
+  providers: [
+    WorkspaceInvitationService,
+    WorkspaceInvitationResolver,
+    WorkspaceInvitationPublicResolver,
+  ],
 })
 export class WorkspaceInvitationModule {}

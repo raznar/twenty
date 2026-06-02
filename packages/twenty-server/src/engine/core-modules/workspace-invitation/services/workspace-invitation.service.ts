@@ -29,6 +29,10 @@ import { ThrottlerService } from 'src/engine/core-modules/throttler/throttler.se
 import { TwentyConfigService } from 'src/engine/core-modules/twenty-config/twenty-config.service';
 import { UserWorkspaceEntity } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
 import { type SendInvitationsDTO } from 'src/engine/core-modules/workspace-invitation/dtos/send-invitations.dto';
+import {
+  type WorkspaceInvitationPreview,
+  WorkspaceInvitationPreviewStatus,
+} from 'src/engine/core-modules/workspace-invitation/dtos/workspace-invitation.dto';
 import { castAppTokenToWorkspaceInvitationUtil } from 'src/engine/core-modules/workspace-invitation/utils/cast-app-token-to-workspace-invitation.util';
 import {
   WorkspaceInvitationException,
@@ -38,6 +42,11 @@ import { WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.ent
 import { RoleValidationService } from 'src/engine/metadata-modules/role-validation/services/role-validation.service';
 import { WorkspaceMemberWorkspaceEntity } from 'src/modules/workspace-member/standard-objects/workspace-member.workspace-entity';
 import { CustomException } from 'src/utils/custom-exception';
+
+type WorkspaceInvitationInviter = {
+  displayName?: string;
+  email?: string;
+};
 
 @Injectable()
 export class WorkspaceInvitationService {
@@ -126,8 +135,9 @@ export class WorkspaceInvitationService {
       where: {
         value: invitationToken,
         type: AppTokenType.InvitationToken,
+        deletedAt: IsNull(),
       },
-      relations: { workspace: true },
+      relations: { user: true, workspace: true },
     });
 
     if (!appToken) {
@@ -138,6 +148,53 @@ export class WorkspaceInvitationService {
     }
 
     return appToken;
+  }
+
+  async getWorkspaceInvitationPreview(
+    invitationToken: string,
+  ): Promise<WorkspaceInvitationPreview> {
+    const trimmedInvitationToken = invitationToken.trim();
+
+    if (!trimmedInvitationToken) {
+      throw new WorkspaceInvitationException(
+        'Invitation token is missing',
+        WorkspaceInvitationExceptionCode.INVALID_INVITATION,
+      );
+    }
+
+    const appToken = await this.getAppTokenByInvitationToken(
+      trimmedInvitationToken,
+    );
+
+    if (!appToken.context?.email) {
+      throw new WorkspaceInvitationException(
+        'Invitation corrupted: Missing email in context',
+        WorkspaceInvitationExceptionCode.INVITATION_CORRUPTED,
+      );
+    }
+
+    if (!isDefined(appToken.workspace)) {
+      throw new WorkspaceInvitationException(
+        'Invitation corrupted: Missing workspace relation',
+        WorkspaceInvitationExceptionCode.INVITATION_CORRUPTED,
+      );
+    }
+
+    const isExpired = new Date(appToken.expiresAt) < new Date();
+
+    return {
+      workspaceDisplayName: appToken.workspace.displayName ?? '',
+      inviterDisplayName:
+        this.getWorkspaceInvitationPreviewInviterDisplayName(appToken),
+      inviterEmail:
+        appToken.context.inviterEmail ?? appToken.user?.email ?? null,
+      invitedEmail: appToken.context.email,
+      expiresAt: appToken.expiresAt,
+      status: isExpired
+        ? WorkspaceInvitationPreviewStatus.EXPIRED
+        : WorkspaceInvitationPreviewStatus.VALID,
+      isValid: !isExpired,
+    };
   }
 
   async loadWorkspaceInvitations(workspace: WorkspaceEntity) {
@@ -159,6 +216,7 @@ export class WorkspaceInvitationService {
     email: string,
     workspace: WorkspaceEntity,
     roleId?: string,
+    inviter?: WorkspaceInvitationInviter,
   ) {
     const maybeWorkspaceInvitation = await this.getOneWorkspaceInvitation(
       workspace.id,
@@ -191,7 +249,7 @@ export class WorkspaceInvitationService {
       );
     }
 
-    return this.generateInvitationToken(workspace.id, email, roleId);
+    return this.generateInvitationToken(workspace.id, email, roleId, inviter);
   }
 
   async deleteWorkspaceInvitation(appTokenId: string, workspaceId: string) {
@@ -281,6 +339,7 @@ export class WorkspaceInvitationService {
           email,
           workspace,
           roleId,
+          this.getWorkspaceInvitationInviter(sender),
         );
 
         if (!appToken.context?.email) {
@@ -403,6 +462,7 @@ export class WorkspaceInvitationService {
     workspaceId: string,
     email: string,
     roleId?: string,
+    inviter?: WorkspaceInvitationInviter,
   ) {
     const expiresIn = this.twentyConfigService.get(
       'INVITATION_TOKEN_EXPIRES_IN',
@@ -425,6 +485,10 @@ export class WorkspaceInvitationService {
       context: {
         email,
         ...(isDefined(roleId) ? { roleId } : {}),
+        ...(isDefined(inviter?.displayName)
+          ? { inviterDisplayName: inviter.displayName }
+          : {}),
+        ...(isDefined(inviter?.email) ? { inviterEmail: inviter.email } : {}),
       },
     });
 
@@ -472,5 +536,37 @@ export class WorkspaceInvitationService {
         },
       );
     }
+  }
+
+  private getWorkspaceInvitationInviter(
+    sender: WorkspaceMemberWorkspaceEntity,
+  ): WorkspaceInvitationInviter {
+    const displayName = `${sender.name.firstName} ${sender.name.lastName}`
+      .trim()
+      .replace(/\s+/g, ' ');
+
+    return {
+      ...(displayName ? { displayName } : {}),
+      ...(isDefined(sender.userEmail) ? { email: sender.userEmail } : {}),
+    };
+  }
+
+  private getWorkspaceInvitationPreviewInviterDisplayName(
+    appToken: AppTokenEntity,
+  ): string | null {
+    if (isDefined(appToken.context?.inviterDisplayName)) {
+      return appToken.context.inviterDisplayName;
+    }
+
+    const userDisplayName =
+      `${appToken.user?.firstName ?? ''} ${appToken.user?.lastName ?? ''}`
+        .trim()
+        .replace(/\s+/g, ' ');
+
+    if (userDisplayName) {
+      return userDisplayName;
+    }
+
+    return null;
   }
 }
