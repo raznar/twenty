@@ -294,6 +294,8 @@ export class WorkspaceInvitationService {
       );
     }
 
+    const inviterEmail = sender.userEmail;
+
     await this.throttleInvitationSending(workspace.id, emails);
 
     const invitationResults = await Promise.allSettled(
@@ -303,7 +305,7 @@ export class WorkspaceInvitationService {
           workspace,
           roleId,
           inviter: {
-            email: sender.userEmail,
+            email: inviterEmail,
             name: `${sender.name.firstName} ${sender.name.lastName ?? ''}`.trim(),
           },
         });
