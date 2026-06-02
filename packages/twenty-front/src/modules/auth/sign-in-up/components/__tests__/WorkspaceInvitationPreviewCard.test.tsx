@@ -7,7 +7,7 @@ import { ThemeProvider } from 'twenty-ui/theme-constants';
 
 import { WorkspaceInvitationPreviewCard } from '@/auth/sign-in-up/components/WorkspaceInvitationPreviewCard';
 import { type WorkspaceInvitationPreview } from '@/workspace-invitation/types/workspace-invitation-preview.types';
-import { type WorkspaceInvitationPreviewUiState } from '@/workspace-invitation/utils/get-workspace-invitation-preview-ui-state';
+import { type WorkspaceInvitationPreviewUiState } from '@/workspace-invitation/utils/getWorkspaceInvitationPreviewUiState';
 import { dynamicActivate } from '~/utils/i18n/dynamicActivate';
 
 const createInvitationPreview = ({

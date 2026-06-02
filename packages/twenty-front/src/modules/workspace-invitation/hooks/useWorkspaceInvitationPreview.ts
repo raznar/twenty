@@ -3,7 +3,7 @@ import {
   type GetWorkspaceInvitationPreviewQuery,
   type GetWorkspaceInvitationPreviewQueryVariables,
 } from '@/workspace-invitation/types/workspace-invitation-preview.types';
-import { getWorkspaceInvitationPreviewUiState } from '@/workspace-invitation/utils/get-workspace-invitation-preview-ui-state';
+import { getWorkspaceInvitationPreviewUiState } from '@/workspace-invitation/utils/getWorkspaceInvitationPreviewUiState';
 import { useQuery } from '@apollo/client/react';
 import { isDefined } from 'twenty-shared/utils';
 

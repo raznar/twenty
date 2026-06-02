@@ -1,6 +1,6 @@
 import { SubTitle } from '@/auth/components/SubTitle';
 import { type WorkspaceInvitationPreview } from '@/workspace-invitation/types/workspace-invitation-preview.types';
-import { type WorkspaceInvitationPreviewUiState } from '@/workspace-invitation/utils/get-workspace-invitation-preview-ui-state';
+import { type WorkspaceInvitationPreviewUiState } from '@/workspace-invitation/utils/getWorkspaceInvitationPreviewUiState';
 import { styled } from '@linaria/react';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { AppPath } from 'twenty-shared/types';
@@ -9,7 +9,6 @@ import { Callout, IconClock, IconMail, IconUser } from 'twenty-ui/display';
 import { Loader } from 'twenty-ui/feedback';
 import { ClickToActionLink } from 'twenty-ui/navigation';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
-import { useNavigateApp } from '~/hooks/useNavigateApp';
 
 const StyledPreviewContainer = styled.div`
   display: flex;
@@ -91,7 +90,6 @@ export const WorkspaceInvitationPreviewCard = ({
   uiState,
 }: WorkspaceInvitationPreviewCardProps) => {
   const { t } = useLingui();
-  const navigate = useNavigateApp();
 
   if (uiState === 'loading') {
     return (
@@ -116,7 +114,7 @@ export const WorkspaceInvitationPreviewCard = ({
           description={t`This workspace invitation is no longer valid. Ask your workspace admin to send a new invite.`}
         />
         <StyledActionsContainer>
-          <ClickToActionLink onClick={() => navigate(AppPath.Index)}>
+          <ClickToActionLink href={AppPath.Index}>
             <Trans>Back to home</Trans>
           </ClickToActionLink>
         </StyledActionsContainer>
@@ -133,7 +131,7 @@ export const WorkspaceInvitationPreviewCard = ({
           description={t`We could not find this invitation. The link may be incorrect or has already been used.`}
         />
         <StyledActionsContainer>
-          <ClickToActionLink onClick={() => navigate(AppPath.Index)}>
+          <ClickToActionLink href={AppPath.Index}>
             <Trans>Back to home</Trans>
           </ClickToActionLink>
         </StyledActionsContainer>

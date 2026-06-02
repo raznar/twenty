@@ -38,7 +38,7 @@ import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomState
 import { useSetAtomState } from '@/ui/utilities/state/jotai/hooks/useSetAtomState';
 import { useWorkspaceInvitationPreview } from '@/workspace-invitation/hooks/useWorkspaceInvitationPreview';
 import { type WorkspaceInvitationPreview } from '@/workspace-invitation/types/workspace-invitation-preview.types';
-import { type WorkspaceInvitationPreviewUiState } from '@/workspace-invitation/utils/get-workspace-invitation-preview-ui-state';
+import { type WorkspaceInvitationPreviewUiState } from '@/workspace-invitation/utils/getWorkspaceInvitationPreviewUiState';
 import { type PublicWorkspaceData } from '~/generated-metadata/graphql';
 
 const StyledLoaderContainer = styled.div`

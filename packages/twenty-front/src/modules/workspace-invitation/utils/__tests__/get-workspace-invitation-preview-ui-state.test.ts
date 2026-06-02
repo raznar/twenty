@@ -1,4 +1,4 @@
-import { getWorkspaceInvitationPreviewUiState } from '@/workspace-invitation/utils/get-workspace-invitation-preview-ui-state';
+import { getWorkspaceInvitationPreviewUiState } from '@/workspace-invitation/utils/getWorkspaceInvitationPreviewUiState';
 
 describe('getWorkspaceInvitationPreviewUiState', () => {
   it('should return loading when query is loading', () => {
