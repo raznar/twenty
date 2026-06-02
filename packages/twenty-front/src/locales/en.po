@@ -2010,6 +2010,11 @@ msgstr "Anyone in this workspace can use this credential."
 msgid "Anyone with an email address at these domains is allowed to sign up for this workspace."
 msgstr "Anyone with an email address at these domains is allowed to sign up for this workspace."
 
+#. js-lingui-id: BiTA0w
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "Anyone with this invite link"
+msgstr "Anyone with this invite link"
+
 #. js-lingui-id: OZtEcz
 #: src/modules/settings/playground/components/PlaygroundSetupForm.tsx
 msgid "API"
@@ -6886,6 +6891,7 @@ msgstr "Experience - Settings"
 #. js-lingui-id: LxRNPw
 #: src/pages/settings/developers/api-keys/SettingsDevelopersApiKeyDetail.tsx
 #: src/modules/settings/developers/components/SettingsApiKeysTable.tsx
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
 msgid "Expiration"
 msgstr "Expiration"
 
@@ -6897,6 +6903,7 @@ msgstr "Expiration Date"
 #. js-lingui-id: M1RnFv
 #: src/pages/settings/members/tabs/SettingsWorkspaceMembersInviteTab.tsx
 #: src/modules/settings/developers/utils/formatExpiration.ts
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
 msgid "Expired"
 msgstr "Expired"
 
@@ -8643,6 +8650,11 @@ msgstr "Integrations - Settings"
 msgid "Interval switching has been cancelled."
 msgstr "Interval switching has been cancelled."
 
+#. js-lingui-id: JHB/Ky
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "Invalid"
+msgstr "Invalid"
+
 #. js-lingui-id: ggS/0k
 #: src/modules/settings/two-factor-authentication/components/DeleteTwoFactorAuthenticationMethod.tsx
 msgid "Invalid 2FA information."
@@ -8764,6 +8776,16 @@ msgstr "Invalid URL. Click edit to configure this widget."
 msgid "Invalid verification code. Please try again."
 msgstr "Invalid verification code. Please try again."
 
+#. js-lingui-id: J2J1yZ
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "Invitation details"
+msgstr "Invitation details"
+
+#. js-lingui-id: A4uBEL
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "Invitation email"
+msgstr "Invitation email"
+
 #. js-lingui-id: ZR1dJ4
 #: src/modules/ui/navigation/navigation-drawer/components/MultiWorkspaceDropdown/internal/components/WorkspacesForSignUp.tsx
 msgid "Invitations"
@@ -8805,6 +8827,11 @@ msgstr "Invite user"
 #: src/pages/onboarding/InviteTeam.tsx
 msgid "Invite your team"
 msgstr "Invite your team"
+
+#. js-lingui-id: fmPQtf
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "Invited by"
+msgstr "Invited by"
 
 #. js-lingui-id: CUvG5b
 #: src/modules/settings/data-model/fields/forms/select/components/SettingsDataModelFieldSelectFormOptionRow.tsx
@@ -10832,6 +10859,11 @@ msgstr "No Events"
 msgid "No events have been scheduled with this {objectName} yet."
 msgstr "No events have been scheduled with this {objectName} yet."
 
+#. js-lingui-id: Pwk/Td
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "No expiration"
+msgstr "No expiration"
+
 #. js-lingui-id: K8KcHw
 #: src/pages/settings/applications/tabs/SettingsApplicationsAvailableTab.tsx
 msgid "No featured applications found. {nonFeaturedCount} non-featured result(s) available — "
@@ -11205,6 +11237,11 @@ msgstr "Norwegian"
 #: src/modules/spreadsheet-import/steps/components/MatchColumnsStep/MatchColumnsStep.tsx
 msgid "Not all columns matched"
 msgstr "Not all columns matched"
+
+#. js-lingui-id: OJx3wK
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "Not available"
+msgstr "Not available"
 
 #. js-lingui-id: tqk+dw
 #: src/modules/object-record/object-options-dropdown/components/ObjectOptionsDropdownLayoutContent.tsx
@@ -15658,6 +15695,11 @@ msgstr "This form will appear in workflow runs."
 msgid "This function has no trigger configured, so it can only be invoked from the Test tab or by other functions."
 msgstr "This function has no trigger configured, so it can only be invoked from the Test tab or by other functions."
 
+#. js-lingui-id: JpInO3
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "This invitation can no longer be accepted."
+msgstr "This invitation can no longer be accepted."
+
 #. js-lingui-id: njWene
 #: src/modules/settings/data-model/fields/forms/morph-relation/components/SettingsDataModelFieldRelationJunctionForm.tsx
 msgid "This is a relation to a Junction Object"
@@ -16900,6 +16942,11 @@ msgstr "Using default application value. Configure via environment variables."
 msgid "Using default value. Set a custom value to override."
 msgstr "Using default value. Set a custom value to override."
 
+#. js-lingui-id: nfagfM
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "Valid"
+msgstr "Valid"
+
 #. js-lingui-id: zzp4XX
 #: src/pages/settings/enterprise/SettingsEnterprise.tsx
 #: src/pages/settings/enterprise/SettingsEnterprise.tsx
@@ -17568,6 +17615,7 @@ msgstr "Workflows"
 #: src/modules/object-record/object-options-dropdown/components/ObjectOptionsDropdownVisibilityContent.tsx
 #: src/modules/object-record/object-options-dropdown/components/ObjectOptionsDropdownCustomView.tsx
 #: src/modules/navigation-menu-item/display/sections/workspace/components/WorkspaceSection.tsx
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
 msgid "Workspace"
 msgstr "Workspace"
 
