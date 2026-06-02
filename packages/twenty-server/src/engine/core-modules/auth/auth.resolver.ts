@@ -87,6 +87,7 @@ import { SignUpInput } from './dto/sign-up.input';
 import { UserCredentialsInput } from './dto/user-credentials.input';
 import { CheckUserExistDTO } from './dto/user-exists.dto';
 import { EmailAndCaptchaInput } from './dto/user-exists.input';
+import { WorkspaceInvitationPreviewDTO } from './dto/workspace-invitation-preview.dto';
 import { WorkspaceInviteHashValidDTO } from './dto/workspace-invite-hash-valid.dto';
 import { WorkspaceInviteHashValidInput } from './dto/workspace-invite-hash.input';
 import { AuthService } from './services/auth.service';
@@ -166,6 +167,18 @@ export class AuthResolver {
     return await this.authService.findWorkspaceFromInviteHashOrFail(
       workspaceInviteHashValidInput.inviteHash,
     );
+  }
+
+  @Query(() => WorkspaceInvitationPreviewDTO)
+  @UseGuards(PublicEndpointGuard, NoPermissionGuard)
+  async getWorkspaceInvitationPreview(
+    @Args('inviteHash') inviteHash: string,
+    @Args('inviteToken', { nullable: true }) inviteToken?: string,
+  ): Promise<WorkspaceInvitationPreviewDTO> {
+    return await this.authService.getWorkspaceInvitationPreview({
+      inviteHash,
+      inviteToken,
+    });
   }
 
   @Mutation(() => LoginTokenDTO)

@@ -155,11 +155,20 @@ export class WorkspaceInvitationService {
     return appTokens.map(castAppTokenToWorkspaceInvitationUtil);
   }
 
-  async createWorkspaceInvitation(
-    email: string,
-    workspace: WorkspaceEntity,
-    roleId?: string,
-  ) {
+  async createWorkspaceInvitation({
+    email,
+    workspace,
+    roleId,
+    inviter,
+  }: {
+    email: string;
+    workspace: WorkspaceEntity;
+    roleId?: string;
+    inviter?: {
+      email: string;
+      name: string;
+    };
+  }) {
     const maybeWorkspaceInvitation = await this.getOneWorkspaceInvitation(
       workspace.id,
       email.toLowerCase(),
@@ -191,7 +200,12 @@ export class WorkspaceInvitationService {
       );
     }
 
-    return this.generateInvitationToken(workspace.id, email, roleId);
+    return this.generateInvitationToken({
+      workspaceId: workspace.id,
+      email,
+      roleId,
+      inviter,
+    });
   }
 
   async deleteWorkspaceInvitation(appTokenId: string, workspaceId: string) {
@@ -273,15 +287,26 @@ export class WorkspaceInvitationService {
       );
     }
 
+    if (!isDefined(sender.userEmail)) {
+      throw new WorkspaceInvitationException(
+        'Sender email is missing',
+        WorkspaceInvitationExceptionCode.EMAIL_MISSING,
+      );
+    }
+
     await this.throttleInvitationSending(workspace.id, emails);
 
     const invitationResults = await Promise.allSettled(
       emails.map(async (email) => {
-        const appToken = await this.createWorkspaceInvitation(
+        const appToken = await this.createWorkspaceInvitation({
           email,
           workspace,
           roleId,
-        );
+          inviter: {
+            email: sender.userEmail,
+            name: `${sender.name.firstName} ${sender.name.lastName ?? ''}`.trim(),
+          },
+        });
 
         if (!appToken.context?.email) {
           throw new WorkspaceInvitationException(
@@ -306,13 +331,6 @@ export class WorkspaceInvitationService {
             email: invitation.value.email,
           },
         });
-
-        if (!isDefined(sender.userEmail)) {
-          throw new WorkspaceInvitationException(
-            'Sender email is missing',
-            WorkspaceInvitationExceptionCode.EMAIL_MISSING,
-          );
-        }
 
         const logo = isDefined(workspace.logoFileId)
           ? await this.fileUrlService.signFileByIdUrl({
@@ -399,11 +417,20 @@ export class WorkspaceInvitationService {
     };
   }
 
-  async generateInvitationToken(
-    workspaceId: string,
-    email: string,
-    roleId?: string,
-  ) {
+  async generateInvitationToken({
+    workspaceId,
+    email,
+    roleId,
+    inviter,
+  }: {
+    workspaceId: string;
+    email: string;
+    roleId?: string;
+    inviter?: {
+      email: string;
+      name: string;
+    };
+  }) {
     const expiresIn = this.twentyConfigService.get(
       'INVITATION_TOKEN_EXPIRES_IN',
     );
@@ -424,6 +451,12 @@ export class WorkspaceInvitationService {
       value: crypto.randomBytes(32).toString('hex'),
       context: {
         email,
+        ...(isDefined(inviter)
+          ? {
+              inviterEmail: inviter.email,
+              inviterName: inviter.name,
+            }
+          : {}),
         ...(isDefined(roleId) ? { roleId } : {}),
       },
     });

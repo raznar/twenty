@@ -164,7 +164,7 @@ describe('WorkspaceInvitationService', () => {
         .mockResolvedValue({} as AppTokenEntity);
 
       await expect(
-        service.createWorkspaceInvitation(email, workspace),
+        service.createWorkspaceInvitation({ email, workspace }),
       ).resolves.not.toThrow();
     });
 
@@ -179,7 +179,7 @@ describe('WorkspaceInvitationService', () => {
       } as any);
 
       await expect(
-        service.createWorkspaceInvitation(email, workspace),
+        service.createWorkspaceInvitation({ email, workspace }),
       ).rejects.toThrow(WorkspaceInvitationException);
     });
   });
@@ -220,6 +220,15 @@ describe('WorkspaceInvitationService', () => {
       expect(result.success).toBe(true);
       expect(result.result.length).toBe(2);
       expect(emailService.send).toHaveBeenCalledTimes(2);
+      expect(service.createWorkspaceInvitation).toHaveBeenCalledWith({
+        email: 'test1@example.com',
+        workspace,
+        roleId: undefined,
+        inviter: {
+          email: 'sender@example.com',
+          name: 'Sender',
+        },
+      });
       expect(
         onboardingService.setOnboardingInviteTeamPending,
       ).toHaveBeenCalledWith({
@@ -232,6 +241,47 @@ describe('WorkspaceInvitationService', () => {
         workspaceId: workspace.id,
         value: true,
       });
+    });
+  });
+
+  describe('generateInvitationToken', () => {
+    it('should persist inviter metadata in the invitation token context', async () => {
+      const expiresAt = new Date('2026-01-01T00:00:00.000Z');
+
+      jest.spyOn(twentyConfigService, 'get').mockReturnValue('1d');
+      jest.spyOn(appTokenRepository, 'create').mockReturnValue({
+        workspaceId: 'workspace-id',
+        expiresAt,
+        type: AppTokenType.InvitationToken,
+        value: 'token-value',
+        context: {
+          email: 'test@example.com',
+          inviterEmail: 'sender@example.com',
+          inviterName: 'Sender Name',
+        },
+      } as AppTokenEntity);
+      jest
+        .spyOn(appTokenRepository, 'save')
+        .mockImplementation(async (appToken) => appToken as AppTokenEntity);
+
+      await service.generateInvitationToken({
+        workspaceId: 'workspace-id',
+        email: 'test@example.com',
+        inviter: {
+          email: 'sender@example.com',
+          name: 'Sender Name',
+        },
+      });
+
+      expect(appTokenRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          context: {
+            email: 'test@example.com',
+            inviterEmail: 'sender@example.com',
+            inviterName: 'Sender Name',
+          },
+        }),
+      );
     });
   });
 });

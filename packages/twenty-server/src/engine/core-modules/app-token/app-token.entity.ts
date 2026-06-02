@@ -92,6 +92,8 @@ export class AppTokenEntity {
   @Column({ nullable: true, type: 'jsonb' })
   context: {
     email?: string;
+    inviterEmail?: string;
+    inviterName?: string;
     roleId?: string;
     redirectUri?: string;
     clientId?: string;
