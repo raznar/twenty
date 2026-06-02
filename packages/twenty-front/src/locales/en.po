@@ -735,6 +735,11 @@ msgstr "A role must be selected for the API key"
 msgid "A shared environment where you will be able to manage your customer relations with your team."
 msgstr "A shared environment where you will be able to manage your customer relations with your team."
 
+#. js-lingui-id: TBsODp
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "A team member"
+msgstr "A team member"
+
 #. js-lingui-id: /cSHSG
 #: src/modules/auth/sign-in-up/components/EmailVerificationSent.tsx
 msgid "A verification email has been sent to"
@@ -2682,6 +2687,12 @@ msgstr "Back to {linkText}"
 #: src/pages/not-found/NotFound.tsx
 msgid "Back to content"
 msgstr "Back to content"
+
+#. js-lingui-id: x4RuFo
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "Back to home"
+msgstr "Back to home"
 
 #. js-lingui-id: 9aZHfH
 #: src/modules/marketplace/components/SettingsApplicationInstallPermissionValidationModal.tsx
@@ -6902,6 +6913,7 @@ msgstr "Expired"
 
 #. js-lingui-id: KnN1Tu
 #: src/modules/settings/roles/role-assignment/components/SettingsRoleAssignmentTable.tsx
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
 msgid "Expires"
 msgstr "Expires"
 
@@ -8731,6 +8743,11 @@ msgstr "Invalid hour value '{newHour}'. Should be integer between 0 and 23"
 msgid "Invalid hour value '{newHour}'. Should be integer greater than 1"
 msgstr "Invalid hour value '{newHour}'. Should be integer greater than 1"
 
+#. js-lingui-id: odFCYX
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "Invalid invitation"
+msgstr "Invalid invitation"
+
 #. js-lingui-id: +Yi3bs
 #: src/modules/workflow/workflow-trigger/components/WorkflowEditTriggerCronForm.tsx
 #: src/modules/workflow/workflow-trigger/components/WorkflowEditTriggerCronForm.tsx
@@ -8763,6 +8780,11 @@ msgstr "Invalid URL. Click edit to configure this widget."
 #: src/modules/auth/sign-in-up/components/internal/SignInUpTwoFactorAuthenticationVerification.tsx
 msgid "Invalid verification code. Please try again."
 msgstr "Invalid verification code. Please try again."
+
+#. js-lingui-id: STa+gJ
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "Invitation expired"
+msgstr "Invitation expired"
 
 #. js-lingui-id: ZR1dJ4
 #: src/modules/ui/navigation/navigation-drawer/components/MultiWorkspaceDropdown/internal/components/WorkspacesForSignUp.tsx
@@ -8805,6 +8827,16 @@ msgstr "Invite user"
 #: src/pages/onboarding/InviteTeam.tsx
 msgid "Invite your team"
 msgstr "Invite your team"
+
+#. js-lingui-id: fmPQtf
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "Invited by"
+msgstr "Invited by"
+
+#. js-lingui-id: 4J4uOW
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "Invited email"
+msgstr "Invited email"
 
 #. js-lingui-id: CUvG5b
 #: src/modules/settings/data-model/fields/forms/select/components/SettingsDataModelFieldSelectFormOptionRow.tsx
@@ -8982,6 +9014,11 @@ msgstr "john.doe@example.com"
 #: src/pages/auth/SignInUp.tsx
 msgid "Join {workspaceName} team"
 msgstr "Join {workspaceName} team"
+
+#. js-lingui-id: xNFr99
+#: src/pages/auth/SignInUp.tsx
+msgid "Join workspace team"
+msgstr "Join workspace team"
 
 #. js-lingui-id: B2Zb/F
 #: src/pages/settings/ai/components/SettingsAgentResponseFormat.tsx
@@ -9519,6 +9556,11 @@ msgstr "Loading document viewer..."
 #: src/modules/activities/emails/components/EmailLoader.tsx
 msgid "Loading emails"
 msgstr "Loading emails"
+
+#. js-lingui-id: zsTIV1
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "Loading invitation details..."
+msgstr "Loading invitation details..."
 
 #. js-lingui-id: IFQsdb
 #: src/modules/settings/admin-panel/health-status/components/SettingsAdminQueueJobsTable.tsx
@@ -15802,6 +15844,16 @@ msgstr "This will permanently delete the object and all its records. Type \"yes\
 msgid "This will permanently delete your two factor authentication method.<0/>Since 2FA is mandatory in your workspace, you will be logged out after deletion and will be asked to configure it again upon login. <1/>Please type in your email to confirm."
 msgstr "This will permanently delete your two factor authentication method.<0/>Since 2FA is mandatory in your workspace, you will be logged out after deletion and will be asked to configure it again upon login. <1/>Please type in your email to confirm."
 
+#. js-lingui-id: mSuhYn
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "this workspace"
+msgstr "this workspace"
+
+#. js-lingui-id: dgdSBx
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "This workspace invitation is no longer valid. Ask your workspace admin to send a new invite."
+msgstr "This workspace invitation is no longer valid. Ask your workspace admin to send a new invite."
+
 #. js-lingui-id: f8HOUp
 #: src/modules/ai/components/ThinkingStepsDisplay.tsx
 msgid "Thought"
@@ -17244,6 +17296,11 @@ msgstr "was deleted by"
 msgid "was restored by"
 msgstr "was restored by"
 
+#. js-lingui-id: kkRngW
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "We could not find this invitation. The link may be incorrect or has already been used."
+msgstr "We could not find this invitation. The link may be incorrect or has already been used."
+
 #. js-lingui-id: 6eMAkI
 #: src/modules/auth/sign-in-up/components/EmailVerificationSent.tsx
 msgid "We encountered an issue verifying"
@@ -17568,6 +17625,7 @@ msgstr "Workflows"
 #: src/modules/object-record/object-options-dropdown/components/ObjectOptionsDropdownVisibilityContent.tsx
 #: src/modules/object-record/object-options-dropdown/components/ObjectOptionsDropdownCustomView.tsx
 #: src/modules/navigation-menu-item/display/sections/workspace/components/WorkspaceSection.tsx
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
 msgid "Workspace"
 msgstr "Workspace"
 
@@ -17817,6 +17875,11 @@ msgstr "You do not have permission to view this widget"
 #: src/modules/object-record/record-index/components/RecordIndexEmptyStateNotShared.tsx
 msgid "You don't have access to this object."
 msgstr "You don't have access to this object."
+
+#. js-lingui-id: lozrnR
+#: src/modules/auth/sign-in-up/components/WorkspaceInvitationPreviewCard.tsx
+msgid "You have been invited to join {workspaceName}. Sign in below to accept."
+msgstr "You have been invited to join {workspaceName}. Sign in below to accept."
 
 #. js-lingui-id: RDAH2t
 #: src/modules/settings/billing/components/SettingsBillingSubscriptionInfo.tsx
