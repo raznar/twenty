@@ -1,10 +1,16 @@
 import { type CanActivate } from '@nestjs/common';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
 import { ApiKeyService } from 'src/engine/core-modules/api-key/services/api-key.service';
 import { AppTokenEntity } from 'src/engine/core-modules/app-token/app-token.entity';
 import { AuditService } from 'src/engine/core-modules/audit/services/audit.service';
+import {
+  AuthException,
+  AuthExceptionCode,
+} from 'src/engine/core-modules/auth/auth.exception';
+import { type WorkspaceInvitationPreviewDTO } from 'src/engine/core-modules/auth/dto/workspace-invitation-preview.dto';
 import { SignInUpService } from 'src/engine/core-modules/auth/services/sign-in-up.service';
 import { RefreshTokenService } from 'src/engine/core-modules/auth/token/services/refresh-token.service';
 import { WorkspaceAgnosticTokenService } from 'src/engine/core-modules/auth/token/services/workspace-agnostic-token.service';
@@ -19,6 +25,8 @@ import { UserWorkspaceEntity } from 'src/engine/core-modules/user-workspace/user
 import { UserWorkspaceService } from 'src/engine/core-modules/user-workspace/user-workspace.service';
 import { UserService } from 'src/engine/core-modules/user/services/user.service';
 import { UserEntity } from 'src/engine/core-modules/user/user.entity';
+import { NoPermissionGuard } from 'src/engine/guards/no-permission.guard';
+import { PublicEndpointGuard } from 'src/engine/guards/public-endpoint.guard';
 import { PermissionsService } from 'src/engine/metadata-modules/permissions/permissions.service';
 
 import { AuthResolver } from './auth.resolver';
@@ -32,6 +40,9 @@ import { TransientTokenService } from './token/services/transient-token.service'
 
 describe('AuthResolver', () => {
   let resolver: AuthResolver;
+  let authService: jest.Mocked<
+    Pick<AuthService, 'getWorkspaceInvitationPreview'>
+  >;
   const mock_CaptchaGuard: CanActivate = { canActivate: jest.fn(() => true) };
 
   beforeEach(async () => {
@@ -52,7 +63,9 @@ describe('AuthResolver', () => {
         },
         {
           provide: AuthService,
-          useValue: {},
+          useValue: {
+            getWorkspaceInvitationPreview: jest.fn(),
+          },
         },
         {
           provide: RefreshTokenService,
@@ -145,9 +158,83 @@ describe('AuthResolver', () => {
       .compile();
 
     resolver = module.get<AuthResolver>(AuthResolver);
+    authService = module.get(AuthService) as jest.Mocked<
+      Pick<AuthService, 'getWorkspaceInvitationPreview'>
+    >;
   });
 
   it('should be defined', () => {
     expect(resolver).toBeDefined();
+  });
+
+  describe('getWorkspaceInvitationPreview', () => {
+    const workspaceInvitationPreview = {
+      workspaceId: 'workspace-id',
+      workspaceDisplayName: 'Test Workspace',
+      workspaceLogo: 'https://example.com/logo.png',
+      allowImpersonation: false,
+      invitationEmail: 'invited@example.com',
+      inviterEmail: 'sender@example.com',
+      inviterName: 'Sender Name',
+      expiresAt: new Date('2100-01-01T00:00:00.000Z'),
+      isExpired: false,
+      isValid: true,
+    } satisfies WorkspaceInvitationPreviewDTO;
+
+    it('should delegate invitation preview lookup to AuthService', async () => {
+      authService.getWorkspaceInvitationPreview.mockResolvedValue(
+        workspaceInvitationPreview,
+      );
+
+      const result = await resolver.getWorkspaceInvitationPreview(
+        'invite-hash',
+        'invite-token',
+      );
+
+      expect(result).toEqual(workspaceInvitationPreview);
+      expect(authService.getWorkspaceInvitationPreview).toHaveBeenCalledWith({
+        inviteHash: 'invite-hash',
+        inviteToken: 'invite-token',
+      });
+    });
+
+    it('should pass an undefined invite token for public invite previews', async () => {
+      authService.getWorkspaceInvitationPreview.mockResolvedValue({
+        ...workspaceInvitationPreview,
+        invitationEmail: null,
+        inviterEmail: null,
+        inviterName: null,
+        expiresAt: null,
+      });
+
+      await resolver.getWorkspaceInvitationPreview('invite-hash');
+
+      expect(authService.getWorkspaceInvitationPreview).toHaveBeenCalledWith({
+        inviteHash: 'invite-hash',
+        inviteToken: undefined,
+      });
+    });
+
+    it('should propagate invitation preview errors from AuthService', async () => {
+      const error = new AuthException(
+        'Workspace does not exist',
+        AuthExceptionCode.INVALID_INPUT,
+      );
+
+      authService.getWorkspaceInvitationPreview.mockRejectedValue(error);
+
+      await expect(
+        resolver.getWorkspaceInvitationPreview('missing-invite-hash'),
+      ).rejects.toThrow(error);
+    });
+
+    it('should be exposed through public no-permission guards', () => {
+      expect(
+        Reflect.getMetadata(
+          GUARDS_METADATA,
+          AuthResolver.prototype.getWorkspaceInvitationPreview,
+        ),
+      ).toEqual([PublicEndpointGuard, NoPermissionGuard]);
+    });
   });
 });

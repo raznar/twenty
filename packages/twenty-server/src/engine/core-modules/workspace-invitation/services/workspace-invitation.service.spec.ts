@@ -44,6 +44,7 @@ describe('WorkspaceInvitationService', () => {
   let twentyConfigService: TwentyConfigService;
   let emailService: EmailService;
   let onboardingService: OnboardingService;
+  let workspaceDomainsService: WorkspaceDomainsService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -72,7 +73,7 @@ describe('WorkspaceInvitationService', () => {
           useValue: {
             buildWorkspaceURL: jest
               .fn()
-              .mockResolvedValue(new URL('http://localhost:3001')),
+              .mockReturnValue(new URL('http://localhost:3001')),
           },
         },
         {
@@ -141,6 +142,9 @@ describe('WorkspaceInvitationService', () => {
     twentyConfigService = module.get<TwentyConfigService>(TwentyConfigService);
     emailService = module.get<EmailService>(EmailService);
     onboardingService = module.get<OnboardingService>(OnboardingService);
+    workspaceDomainsService = module.get<WorkspaceDomainsService>(
+      WorkspaceDomainsService,
+    );
   });
 
   it('should be defined', () => {
@@ -151,6 +155,10 @@ describe('WorkspaceInvitationService', () => {
     it('should create a workspace invitation successfully', async () => {
       const email = 'test@example.com';
       const workspace = { id: 'workspace-id' } as WorkspaceEntity;
+      const inviter = {
+        email: 'sender@example.com',
+        name: 'Sender Name',
+      };
 
       jest.spyOn(appTokenRepository, 'createQueryBuilder').mockReturnValue({
         where: jest.fn().mockReturnThis(),
@@ -164,8 +172,19 @@ describe('WorkspaceInvitationService', () => {
         .mockResolvedValue({} as AppTokenEntity);
 
       await expect(
-        service.createWorkspaceInvitation({ email, workspace }),
+        service.createWorkspaceInvitation({
+          email,
+          workspace,
+          roleId: 'role-id',
+          inviter,
+        }),
       ).resolves.not.toThrow();
+      expect(service.generateInvitationToken).toHaveBeenCalledWith({
+        workspaceId: workspace.id,
+        email,
+        roleId: 'role-id',
+        inviter,
+      });
     });
 
     it('should throw an exception if invitation already exists', async () => {
@@ -229,6 +248,14 @@ describe('WorkspaceInvitationService', () => {
           name: 'Sender',
         },
       });
+      expect(workspaceDomainsService.buildWorkspaceURL).toHaveBeenCalledWith({
+        workspace,
+        pathname: '/invite/invite-hash',
+        searchParams: {
+          inviteToken: 'token-value',
+          email: 'test@example.com',
+        },
+      });
       expect(
         onboardingService.setOnboardingInviteTeamPending,
       ).toHaveBeenCalledWith({
@@ -241,6 +268,31 @@ describe('WorkspaceInvitationService', () => {
         workspaceId: workspace.id,
         value: true,
       });
+    });
+
+    it('should throw when sender email is missing', async () => {
+      const workspace = {
+        id: 'workspace-id',
+        inviteHash: 'invite-hash',
+      } as WorkspaceEntity;
+      const sender = {
+        name: { firstName: 'Sender' },
+        locale: 'en',
+      };
+
+      jest.spyOn(service, 'createWorkspaceInvitation');
+      jest.spyOn(emailService, 'send');
+
+      await expect(
+        service.sendInvitations(
+          ['test@example.com'],
+          workspace,
+          sender as WorkspaceMemberWorkspaceEntity,
+        ),
+      ).rejects.toThrow(WorkspaceInvitationException);
+
+      expect(service.createWorkspaceInvitation).not.toHaveBeenCalled();
+      expect(emailService.send).not.toHaveBeenCalled();
     });
   });
 

@@ -305,6 +305,25 @@ describe('AuthService', () => {
       });
     });
 
+    it('should report missing personal invitation tokens as invalid', async () => {
+      jest.spyOn(appTokenRepository, 'findOne').mockResolvedValue(null);
+
+      const preview = await service.getWorkspaceInvitationPreview({
+        inviteHash: 'invite-hash',
+        inviteToken: 'missing-invite-token',
+      });
+
+      expect(preview).toMatchObject({
+        workspaceId: workspace.id,
+        invitationEmail: null,
+        inviterEmail: null,
+        inviterName: null,
+        expiresAt: null,
+        isExpired: false,
+        isValid: false,
+      });
+    });
+
     it('should use public invite link status when there is no personal token', async () => {
       jest.spyOn(appTokenRepository, 'findOne');
 
@@ -320,6 +339,39 @@ describe('AuthService', () => {
         isValid: true,
       });
       expect(appTokenRepository.findOne).not.toHaveBeenCalled();
+    });
+
+    it('should report public invite previews as invalid when public links are disabled', async () => {
+      jest.spyOn(workspaceRepository, 'findOneBy').mockResolvedValue({
+        ...workspace,
+        isPublicInviteLinkEnabled: false,
+      });
+      jest.spyOn(appTokenRepository, 'findOne');
+
+      const preview = await service.getWorkspaceInvitationPreview({
+        inviteHash: 'invite-hash',
+      });
+
+      expect(preview).toMatchObject({
+        workspaceId: workspace.id,
+        invitationEmail: null,
+        isExpired: false,
+        isValid: false,
+      });
+      expect(appTokenRepository.findOne).not.toHaveBeenCalled();
+    });
+
+    it('should throw when the invite hash does not resolve to a workspace', async () => {
+      jest.spyOn(workspaceRepository, 'findOneBy').mockResolvedValue(null);
+
+      await expect(
+        service.getWorkspaceInvitationPreview({
+          inviteHash: 'missing-invite-hash',
+        }),
+      ).rejects.toMatchObject({
+        message: 'Workspace does not exist',
+        code: AuthExceptionCode.INVALID_INPUT,
+      });
     });
   });
 
