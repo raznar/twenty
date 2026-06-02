@@ -1,14 +1,12 @@
-import { useSignInUp } from '@/auth/sign-in-up/hooks/useSignInUp';
-import { useSignInUpForm } from '@/auth/sign-in-up/hooks/useSignInUpForm';
-import {
-  SignInUpStep,
-  signInUpStepState,
-} from '@/auth/states/signInUpStepState';
-import { workspacePublicDataState } from '@/auth/states/workspacePublicDataState';
 import { styled } from '@linaria/react';
-
-import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
-import { useSetAtomState } from '@/ui/utilities/state/jotai/hooks/useSetAtomState';
+import { useLingui } from '@lingui/react/macro';
+import { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { isDefined } from 'twenty-shared/utils';
+import { Loader } from 'twenty-ui/feedback';
+import { ModalContent } from 'twenty-ui/layout';
+import { themeCssVariables } from 'twenty-ui/theme-constants';
+import { AnimatedEaseIn } from 'twenty-ui/utilities';
 
 import { Logo } from '@/auth/components/Logo';
 import { Title } from '@/auth/components/Title';
@@ -16,27 +14,31 @@ import { EmailVerificationSent } from '@/auth/sign-in-up/components/EmailVerific
 import { FooterNote } from '@/auth/sign-in-up/components/FooterNote';
 import { SignInUpGlobalScopeForm } from '@/auth/sign-in-up/components/SignInUpGlobalScopeForm';
 import { SignInUpWorkspaceScopeForm } from '@/auth/sign-in-up/components/SignInUpWorkspaceScopeForm';
+import { WorkspaceInvitationPreviewCard } from '@/auth/sign-in-up/components/WorkspaceInvitationPreviewCard';
+import { SignInUpGlobalScopeFormEffect } from '@/auth/sign-in-up/components/internal/SignInUpGlobalScopeFormEffect';
 import { WorkspaceSelectionFooter } from '@/auth/sign-in-up/components/WorkspaceSelectionFooter';
 import { SignInUpSSOIdentityProviderSelection } from '@/auth/sign-in-up/components/internal/SignInUpSSOIdentityProviderSelection';
+import { SignInUpTOTPVerification } from '@/auth/sign-in-up/components/internal/SignInUpTwoFactorAuthenticationVerification';
+import { SignInUpTwoFactorAuthenticationProvision } from '@/auth/sign-in-up/components/internal/SignInUpTwoFactorAuthenticationProvision';
 import { SignInUpWorkspaceScopeFormEffect } from '@/auth/sign-in-up/components/internal/SignInUpWorkspaceScopeFormEffect';
+import { useSignInUp } from '@/auth/sign-in-up/hooks/useSignInUp';
+import { useSignInUpForm } from '@/auth/sign-in-up/hooks/useSignInUpForm';
+import { useWorkspaceFromInviteHash } from '@/auth/sign-in-up/hooks/useWorkspaceFromInviteHash';
+import {
+  SignInUpStep,
+  signInUpStepState,
+} from '@/auth/states/signInUpStepState';
+import { workspacePublicDataState } from '@/auth/states/workspacePublicDataState';
+import { clientConfigApiStatusState } from '@/client-config/states/clientConfigApiStatusState';
 import { isMultiWorkspaceEnabledState } from '@/client-config/states/isMultiWorkspaceEnabledState';
 import { useGetPublicWorkspaceDataByDomain } from '@/domain-manager/hooks/useGetPublicWorkspaceDataByDomain';
 import { useIsCurrentLocationOnAWorkspace } from '@/domain-manager/hooks/useIsCurrentLocationOnAWorkspace';
 import { useIsCurrentLocationOnDefaultDomain } from '@/domain-manager/hooks/useIsCurrentLocationOnDefaultDomain';
-import { useMemo } from 'react';
-
-import { SignInUpGlobalScopeFormEffect } from '@/auth/sign-in-up/components/internal/SignInUpGlobalScopeFormEffect';
-import { SignInUpTwoFactorAuthenticationProvision } from '@/auth/sign-in-up/components/internal/SignInUpTwoFactorAuthenticationProvision';
-import { SignInUpTOTPVerification } from '@/auth/sign-in-up/components/internal/SignInUpTwoFactorAuthenticationVerification';
-import { useWorkspaceFromInviteHash } from '@/auth/sign-in-up/hooks/useWorkspaceFromInviteHash';
-import { clientConfigApiStatusState } from '@/client-config/states/clientConfigApiStatusState';
-import { ModalContent } from 'twenty-ui/layout';
-import { useLingui } from '@lingui/react/macro';
-import { useSearchParams } from 'react-router-dom';
-import { isDefined } from 'twenty-shared/utils';
-import { Loader } from 'twenty-ui/feedback';
-import { themeCssVariables } from 'twenty-ui/theme-constants';
-import { AnimatedEaseIn } from 'twenty-ui/utilities';
+import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
+import { useSetAtomState } from '@/ui/utilities/state/jotai/hooks/useSetAtomState';
+import { useWorkspaceInvitationPreview } from '@/workspace-invitation/hooks/useWorkspaceInvitationPreview';
+import { type WorkspaceInvitationPreview } from '@/workspace-invitation/types/workspace-invitation-preview.types';
+import { type WorkspaceInvitationPreviewUiState } from '@/workspace-invitation/utils/getWorkspaceInvitationPreviewUiState';
 import { type PublicWorkspaceData } from '~/generated-metadata/graphql';
 
 const StyledLoaderContainer = styled.div`
@@ -54,12 +56,20 @@ const StandardContent = ({
   signInUpStep,
   title,
   onClickOnLogo,
+  workspacePersonalInviteToken,
+  shouldShowInvitationPreview,
+  workspaceInvitationPreview,
+  invitationPreviewUiState,
 }: {
   workspacePublicData: PublicWorkspaceData | null;
   signInUpForm: JSX.Element | null;
   signInUpStep: SignInUpStep;
   title: string;
   onClickOnLogo: () => void;
+  workspacePersonalInviteToken?: string;
+  shouldShowInvitationPreview: boolean;
+  workspaceInvitationPreview?: WorkspaceInvitationPreview | null;
+  invitationPreviewUiState: WorkspaceInvitationPreviewUiState;
 }) => {
   return (
     <ModalContent isVerticallyCentered isHorizontallyCentered>
@@ -71,6 +81,13 @@ const StandardContent = ({
         />
       </AnimatedEaseIn>
       <Title animate>{title}</Title>
+      {shouldShowInvitationPreview &&
+        isDefined(workspacePersonalInviteToken) && (
+          <WorkspaceInvitationPreviewCard
+            preview={workspaceInvitationPreview}
+            uiState={invitationPreviewUiState}
+          />
+        )}
       {signInUpForm}
       {signInUpStep === SignInUpStep.WorkspaceSelection && (
         <WorkspaceSelectionFooter />
@@ -104,6 +121,15 @@ export const SignInUp = () => {
     useWorkspaceFromInviteHash();
 
   const [searchParams] = useSearchParams();
+  const workspacePersonalInviteToken =
+    searchParams.get('inviteToken') ?? undefined;
+  const {
+    preview: workspaceInvitationPreview,
+    uiState: invitationPreviewUiState,
+  } = useWorkspaceInvitationPreview(workspacePersonalInviteToken);
+  const shouldShowInvitationPreview = isDefined(workspacePersonalInviteToken);
+  const canContinueInvitationAcceptance =
+    !shouldShowInvitationPreview || invitationPreviewUiState === 'valid';
 
   const onClickOnLogo = () => {
     setSignInUpStep(SignInUpStep.Init);
@@ -113,8 +139,13 @@ export const SignInUp = () => {
 
   const title = useMemo(() => {
     if (isDefined(workspaceInviteHash)) {
-      const workspaceName = workspaceFromInviteHash?.displayName ?? '';
-      return t`Join ${workspaceName} team`;
+      const workspaceName =
+        workspaceInvitationPreview?.workspaceDisplayName?.trim() ||
+        workspaceFromInviteHash?.displayName ||
+        '';
+      return workspaceName !== ''
+        ? t`Join ${workspaceName} team`
+        : t`Join workspace team`;
     }
 
     if (signInUpStep === SignInUpStep.WorkspaceSelection) {
@@ -147,9 +178,18 @@ export const SignInUp = () => {
     isGlobalScope,
     t,
     workspaceFromInviteHash?.displayName,
+    workspaceInvitationPreview?.workspaceDisplayName,
   ]);
 
   const signInUpForm = useMemo(() => {
+    if (shouldShowInvitationPreview && invitationPreviewUiState === 'loading') {
+      return null;
+    }
+
+    if (!canContinueInvitationAcceptance) {
+      return null;
+    }
+
     if (getPublicWorkspaceDataLoading || !clientConfigApiStatus.isLoadedOnce) {
       return (
         <StyledLoaderContainer>
@@ -198,11 +238,14 @@ export const SignInUp = () => {
       </>
     );
   }, [
+    canContinueInvitationAcceptance,
     clientConfigApiStatus.isLoadedOnce,
+    invitationPreviewUiState,
     isDefaultDomain,
     isMultiWorkspaceEnabled,
     isOnAWorkspace,
     getPublicWorkspaceDataLoading,
+    shouldShowInvitationPreview,
     signInUpStep,
     workspacePublicData,
   ]);
@@ -222,6 +265,10 @@ export const SignInUp = () => {
       signInUpStep={signInUpStep}
       title={title}
       onClickOnLogo={onClickOnLogo}
+      workspacePersonalInviteToken={workspacePersonalInviteToken}
+      shouldShowInvitationPreview={shouldShowInvitationPreview}
+      workspaceInvitationPreview={workspaceInvitationPreview}
+      invitationPreviewUiState={invitationPreviewUiState}
     />
   );
 };
