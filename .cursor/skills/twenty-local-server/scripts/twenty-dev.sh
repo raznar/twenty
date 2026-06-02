@@ -104,6 +104,8 @@ start_infra_fallback() {
   else
     docker start twenty-local-redis &>/dev/null || true
   fi
+  PG_PORT=5433
+  REDIS_PORT=6380
 }
 
 start_infra() {
