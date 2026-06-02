@@ -567,6 +567,6 @@ export class WorkspaceInvitationService {
       return userDisplayName;
     }
 
-    return appToken.workspace.displayName ?? null;
+    return null;
   }
 }
