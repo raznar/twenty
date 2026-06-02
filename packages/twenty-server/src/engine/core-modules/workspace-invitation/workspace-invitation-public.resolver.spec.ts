@@ -1,35 +1,51 @@
+import { Test, type TestingModule } from '@nestjs/testing';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
+
+import {
+  WorkspaceInvitationPreview,
+  WorkspaceInvitationPreviewStatus,
+} from 'src/engine/core-modules/workspace-invitation/dtos/workspace-invitation.dto';
 import {
   WorkspaceInvitationException,
   WorkspaceInvitationExceptionCode,
 } from 'src/engine/core-modules/workspace-invitation/workspace-invitation.exception';
+import { NoPermissionGuard } from 'src/engine/guards/no-permission.guard';
+import { PublicEndpointGuard } from 'src/engine/guards/public-endpoint.guard';
 
 import { WorkspaceInvitationService } from './services/workspace-invitation.service';
 import { WorkspaceInvitationPublicResolver } from './workspace-invitation-public.resolver';
 
-type WorkspaceInvitationPreview = {
-  workspaceDisplayName: string;
-  inviterDisplayName: string | null;
-  inviterEmail: string | null;
-  invitedEmail: string;
-  expiresAt: Date;
-  status: 'VALID';
-  isValid: boolean;
+type WorkspaceInvitationServiceMock = {
+  getWorkspaceInvitationPreview: jest.MockedFunction<
+    WorkspaceInvitationService['getWorkspaceInvitationPreview']
+  >;
 };
 
-const createWorkspaceInvitationServiceMock = () => ({
-  getWorkspaceInvitationPreview: jest.fn(),
-});
+const createWorkspaceInvitationServiceMock =
+  (): WorkspaceInvitationServiceMock => ({
+    getWorkspaceInvitationPreview: jest.fn(),
+  });
 
 describe('WorkspaceInvitationPublicResolver', () => {
   let resolver: WorkspaceInvitationPublicResolver;
-  let workspaceInvitationService: ReturnType<
-    typeof createWorkspaceInvitationServiceMock
-  >;
+  let workspaceInvitationService: WorkspaceInvitationServiceMock;
 
-  beforeEach(() => {
-    workspaceInvitationService = createWorkspaceInvitationServiceMock();
-    resolver = new WorkspaceInvitationPublicResolver(
-      workspaceInvitationService as unknown as WorkspaceInvitationService,
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        WorkspaceInvitationPublicResolver,
+        {
+          provide: WorkspaceInvitationService,
+          useFactory: createWorkspaceInvitationServiceMock,
+        },
+      ],
+    }).compile();
+
+    resolver = module.get<WorkspaceInvitationPublicResolver>(
+      WorkspaceInvitationPublicResolver,
+    );
+    workspaceInvitationService = module.get<WorkspaceInvitationServiceMock>(
+      WorkspaceInvitationService,
     );
   });
 
@@ -45,7 +61,7 @@ describe('WorkspaceInvitationPublicResolver', () => {
       inviterEmail: 'ada@example.com',
       invitedEmail: 'new-hire@example.com',
       expiresAt,
-      status: 'VALID',
+      status: WorkspaceInvitationPreviewStatus.VALID,
       isValid: true,
     } satisfies WorkspaceInvitationPreview;
 
@@ -59,6 +75,15 @@ describe('WorkspaceInvitationPublicResolver', () => {
     expect(
       workspaceInvitationService.getWorkspaceInvitationPreview,
     ).toHaveBeenCalledWith('valid-token');
+  });
+
+  it('should expose the preview query as a public endpoint with no permission requirements', () => {
+    const guards = Reflect.getMetadata(
+      GUARDS_METADATA,
+      WorkspaceInvitationPublicResolver.prototype.workspaceInvitationPreview,
+    );
+
+    expect(guards).toEqual([PublicEndpointGuard, NoPermissionGuard]);
   });
 
   it('should surface workspace invitation errors when token preview fails', async () => {

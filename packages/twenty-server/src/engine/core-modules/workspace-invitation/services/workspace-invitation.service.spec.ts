@@ -15,7 +15,11 @@ import { OnboardingService } from 'src/engine/core-modules/onboarding/onboarding
 import { ThrottlerService } from 'src/engine/core-modules/throttler/throttler.service';
 import { TwentyConfigService } from 'src/engine/core-modules/twenty-config/twenty-config.service';
 import { UserWorkspaceEntity } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
-import { WorkspaceInvitationException } from 'src/engine/core-modules/workspace-invitation/workspace-invitation.exception';
+import { WorkspaceInvitationPreviewStatus } from 'src/engine/core-modules/workspace-invitation/dtos/workspace-invitation.dto';
+import {
+  WorkspaceInvitationException,
+  WorkspaceInvitationExceptionCode,
+} from 'src/engine/core-modules/workspace-invitation/workspace-invitation.exception';
 import { WorkspaceService } from 'src/engine/core-modules/workspace/services/workspace.service';
 import { WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.entity';
 import { RoleValidationService } from 'src/engine/metadata-modules/role-validation/services/role-validation.service';
@@ -36,6 +40,34 @@ jest.mock('@react-email/render', () => ({
     return '<html><body>HTML email content</body></html>';
   }),
 }));
+
+const createMockInvitationAppToken = (
+  overrides: Partial<AppTokenEntity> = {},
+): AppTokenEntity =>
+  ({
+    id: 'app-token-id',
+    value: 'valid-token',
+    type: AppTokenType.InvitationToken,
+    workspaceId: 'workspace-id',
+    userId: 'user-id',
+    expiresAt: new Date('2030-01-02T03:04:05.000Z'),
+    deletedAt: null,
+    revokedAt: null,
+    context: {
+      email: 'new-hire@example.com',
+    },
+    workspace: {
+      id: 'workspace-id',
+      displayName: 'Twenty Dev',
+    } as WorkspaceEntity,
+    user: {
+      id: 'user-id',
+      email: 'ada@example.com',
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+    } as AppTokenEntity['user'],
+    ...overrides,
+  }) as AppTokenEntity;
 
 describe('WorkspaceInvitationService', () => {
   let service: WorkspaceInvitationService;
@@ -184,6 +216,182 @@ describe('WorkspaceInvitationService', () => {
     });
   });
 
+  describe('getWorkspaceInvitationPreview', () => {
+    it('should return a valid invitation preview and trim the token before lookup', async () => {
+      const expiresAt = new Date('2030-01-02T03:04:05.000Z');
+      const appToken = createMockInvitationAppToken({
+        expiresAt,
+        context: {
+          email: 'new-hire@example.com',
+          inviterDisplayName: 'Ada Lovelace',
+          inviterEmail: 'ada@example.com',
+        },
+      });
+
+      jest.spyOn(appTokenRepository, 'findOne').mockResolvedValue(appToken);
+
+      const result = await service.getWorkspaceInvitationPreview(
+        '  valid-token  ',
+      );
+
+      expect(result).toEqual({
+        workspaceDisplayName: 'Twenty Dev',
+        inviterDisplayName: 'Ada Lovelace',
+        inviterEmail: 'ada@example.com',
+        invitedEmail: 'new-hire@example.com',
+        expiresAt,
+        status: WorkspaceInvitationPreviewStatus.VALID,
+        isValid: true,
+      });
+      expect(appTokenRepository.findOne).toHaveBeenCalledWith({
+        where: {
+          value: 'valid-token',
+          type: AppTokenType.InvitationToken,
+          deletedAt: expect.any(Object),
+        },
+        relations: { user: true, workspace: true },
+      });
+    });
+
+    it('should fall back to the app token user as inviter when context inviter is missing', async () => {
+      const appToken = createMockInvitationAppToken();
+
+      jest.spyOn(appTokenRepository, 'findOne').mockResolvedValue(appToken);
+
+      const result =
+        await service.getWorkspaceInvitationPreview('valid-token');
+
+      expect(result).toMatchObject({
+        inviterDisplayName: 'Ada Lovelace',
+        inviterEmail: 'ada@example.com',
+      });
+    });
+
+    it('should fall back to the workspace display name when inviter names are missing', async () => {
+      const appToken = createMockInvitationAppToken({
+        user: {
+          id: 'user-id',
+          email: 'ada@example.com',
+          firstName: '',
+          lastName: '',
+        } as AppTokenEntity['user'],
+      });
+
+      jest.spyOn(appTokenRepository, 'findOne').mockResolvedValue(appToken);
+
+      const result =
+        await service.getWorkspaceInvitationPreview('valid-token');
+
+      expect(result.inviterDisplayName).toBe('Twenty Dev');
+    });
+
+    it('should return an expired invitation preview when the token is expired', async () => {
+      const expiresAt = new Date('2020-01-02T03:04:05.000Z');
+      const appToken = createMockInvitationAppToken({
+        expiresAt,
+      });
+
+      jest.spyOn(appTokenRepository, 'findOne').mockResolvedValue(appToken);
+
+      const result =
+        await service.getWorkspaceInvitationPreview('valid-token');
+
+      expect(result).toMatchObject({
+        expiresAt,
+        status: WorkspaceInvitationPreviewStatus.EXPIRED,
+        isValid: false,
+      });
+    });
+
+    it('should throw an invalid invitation exception when the token is blank', async () => {
+      const findOneSpy = jest.spyOn(appTokenRepository, 'findOne');
+
+      await expect(
+        service.getWorkspaceInvitationPreview('   '),
+      ).rejects.toMatchObject({
+        code: WorkspaceInvitationExceptionCode.INVALID_INVITATION,
+        message: 'Invitation token is missing',
+      });
+      expect(findOneSpy).not.toHaveBeenCalled();
+    });
+
+    it('should throw an invalid invitation exception when no token is found', async () => {
+      jest.spyOn(appTokenRepository, 'findOne').mockResolvedValue(null);
+
+      await expect(
+        service.getWorkspaceInvitationPreview('invalid-token'),
+      ).rejects.toMatchObject({
+        code: WorkspaceInvitationExceptionCode.INVALID_INVITATION,
+        message: 'Invalid invitation token',
+      });
+    });
+
+    it('should throw a corrupted invitation exception when email context is missing', async () => {
+      const appToken = createMockInvitationAppToken({
+        context: {},
+      });
+
+      jest.spyOn(appTokenRepository, 'findOne').mockResolvedValue(appToken);
+
+      await expect(
+        service.getWorkspaceInvitationPreview('valid-token'),
+      ).rejects.toMatchObject({
+        code: WorkspaceInvitationExceptionCode.INVITATION_CORRUPTED,
+        message: 'Invitation corrupted: Missing email in context',
+      });
+    });
+
+    it('should throw a corrupted invitation exception when workspace relation is missing', async () => {
+      const appToken = createMockInvitationAppToken({
+        workspace: undefined as unknown as AppTokenEntity['workspace'],
+      });
+
+      jest.spyOn(appTokenRepository, 'findOne').mockResolvedValue(appToken);
+
+      await expect(
+        service.getWorkspaceInvitationPreview('valid-token'),
+      ).rejects.toMatchObject({
+        code: WorkspaceInvitationExceptionCode.INVITATION_CORRUPTED,
+        message: 'Invitation corrupted: Missing workspace relation',
+      });
+    });
+  });
+
+  describe('generateInvitationToken', () => {
+    it('should persist inviter context when provided', async () => {
+      const createdAppToken = createMockInvitationAppToken();
+
+      jest.spyOn(twentyConfigService, 'get').mockReturnValue('1h');
+      jest.spyOn(appTokenRepository, 'create').mockReturnValue(createdAppToken);
+      jest.spyOn(appTokenRepository, 'save').mockResolvedValue(createdAppToken);
+
+      const result = await service.generateInvitationToken(
+        'workspace-id',
+        'new-hire@example.com',
+        'role-id',
+        {
+          displayName: 'Ada Lovelace',
+          email: 'ada@example.com',
+        },
+      );
+
+      expect(appTokenRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'workspace-id',
+          type: AppTokenType.InvitationToken,
+          context: {
+            email: 'new-hire@example.com',
+            roleId: 'role-id',
+            inviterDisplayName: 'Ada Lovelace',
+            inviterEmail: 'ada@example.com',
+          },
+        }),
+      );
+      expect(appTokenRepository.save).toHaveBeenCalledWith(createdAppToken);
+      expect(result).toBe(createdAppToken);
+    });
+  });
+
   describe('sendInvitations', () => {
     it('should send invitations successfully', async () => {
       const emails = ['test1@example.com', 'test2@example.com'];
@@ -194,7 +402,7 @@ describe('WorkspaceInvitationService', () => {
       } as WorkspaceEntity;
       const sender = {
         userEmail: 'sender@example.com',
-        name: { firstName: 'Sender' },
+        name: { firstName: 'Sender', lastName: 'User' },
         locale: 'en',
       };
 
@@ -219,6 +427,26 @@ describe('WorkspaceInvitationService', () => {
 
       expect(result.success).toBe(true);
       expect(result.result.length).toBe(2);
+      expect(service.createWorkspaceInvitation).toHaveBeenNthCalledWith(
+        1,
+        emails[0],
+        workspace,
+        undefined,
+        {
+          displayName: 'Sender User',
+          email: sender.userEmail,
+        },
+      );
+      expect(service.createWorkspaceInvitation).toHaveBeenNthCalledWith(
+        2,
+        emails[1],
+        workspace,
+        undefined,
+        {
+          displayName: 'Sender User',
+          email: sender.userEmail,
+        },
+      );
       expect(emailService.send).toHaveBeenCalledTimes(2);
       expect(
         onboardingService.setOnboardingInviteTeamPending,
