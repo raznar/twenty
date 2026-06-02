@@ -230,9 +230,8 @@ describe('WorkspaceInvitationService', () => {
 
       jest.spyOn(appTokenRepository, 'findOne').mockResolvedValue(appToken);
 
-      const result = await service.getWorkspaceInvitationPreview(
-        '  valid-token  ',
-      );
+      const result =
+        await service.getWorkspaceInvitationPreview('  valid-token  ');
 
       expect(result).toEqual({
         workspaceDisplayName: 'Twenty Dev',
@@ -258,8 +257,7 @@ describe('WorkspaceInvitationService', () => {
 
       jest.spyOn(appTokenRepository, 'findOne').mockResolvedValue(appToken);
 
-      const result =
-        await service.getWorkspaceInvitationPreview('valid-token');
+      const result = await service.getWorkspaceInvitationPreview('valid-token');
 
       expect(result).toMatchObject({
         inviterDisplayName: 'Ada Lovelace',
@@ -279,8 +277,7 @@ describe('WorkspaceInvitationService', () => {
 
       jest.spyOn(appTokenRepository, 'findOne').mockResolvedValue(appToken);
 
-      const result =
-        await service.getWorkspaceInvitationPreview('valid-token');
+      const result = await service.getWorkspaceInvitationPreview('valid-token');
 
       expect(result.inviterDisplayName).toBe('Twenty Dev');
     });
@@ -293,8 +290,7 @@ describe('WorkspaceInvitationService', () => {
 
       jest.spyOn(appTokenRepository, 'findOne').mockResolvedValue(appToken);
 
-      const result =
-        await service.getWorkspaceInvitationPreview('valid-token');
+      const result = await service.getWorkspaceInvitationPreview('valid-token');
 
       expect(result).toMatchObject({
         expiresAt,
